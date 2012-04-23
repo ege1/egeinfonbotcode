@@ -51,6 +51,9 @@ typ1_min = 1
 typ2_min = 2
 typ2_min_typ1 = 1
 
+-- if fleeing, we need to flee more than enemy can reach
+flee_min_range = 1000
+
 -- predefined
 king = false
 -- reset values, get resettet every reset_wait msecs
