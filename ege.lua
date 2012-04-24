@@ -332,14 +332,6 @@ function Creature:onKilled(killer)
   if self.id == king then
 	king = false
   end
---[[  if type == worker then
-	workers = workers - 1
-  elseif type == mum then
-	mums = mums - 1
-  elseif type == fly then
-	flys = flys - 1
-  end
-]]
 end
 
 --[[function info()
