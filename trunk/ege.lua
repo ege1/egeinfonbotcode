@@ -150,7 +150,7 @@ function Creature:heal()
 end
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_typ1 and get_typ2 and my_creatures >= typ2_min and mums >= typ2_min_typ1 and flys <= mums and flys <= max_flys then
+  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys <= my_mums and my_flys <= max_flys then
 	set_convert( self.id, fly )
 	my_flys = my_flys + 1
   elseif get_typ1 then
