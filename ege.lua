@@ -3,9 +3,9 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- If food nearby look how much and inform others
 -- if food here, search around
 -- if food here, remember Position
+-- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
 --------------------------------------------------------------------------
 -- Variables
 --------------------------------------------------------------------------
@@ -217,7 +217,7 @@ function Creature:main_worker()
 	food_koordy = mey
 	food_koord_val = here_food
   elseif here_food <= 1 and mex == food_koordx and mey == food_koordy then
-	food_koord_val = here_food
+	food_koord_val = 0
 	food_koordx = false
 	food_koordy = false
   end
@@ -253,7 +253,6 @@ function Creature:main_worker()
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
   -- make some decisions
   if health > convert_health and food > convert_food and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
-    print ("main before convert")
 	self:convert()
   elseif health < heal_health and food > 1 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
 	self:heal()
@@ -359,6 +358,8 @@ end
   print ("Wir haben " .. my_mums .. " Mums")
   print ("Wir haben " .. my_flys .. " Flies")
   --]]
+--  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
+
 --[[  time = game_time()
   COUNT=chkd
 end
@@ -371,6 +372,25 @@ function Creature:main()
 	  king = false
 	end
   end
+  self.chkd = 0
+  self.workers = 0
+  self.mums = 0
+  self.flys = 0
+  for id, creature in pairs(creatures) do
+    self.chkd = self.chkd + 1
+    if get_type(id) == worker then
+      self.workers = self.workers + 1
+    elseif get_type(id) == mum then
+      self.mums = self.mums + 1
+    elseif get_type(id) == fly then
+      self.flys = self.flys + 1
+    end
+  end
+  my_workers = self.workers
+  my_mums = self.mums
+  my_flys = self.flys
+  my_creatures = self.chkd
+--  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
   now = game_time()
   if now >= future then
 	Creature:onRestart()
