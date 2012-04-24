@@ -180,6 +180,7 @@ function Creature:flee(attacker)
 --flee only if we are fly and attacker is mum or worker or
 -- if we are worker or fly and attacker is mum
 -- flee until attacker is farer then flee_min_range
+-- get_nearest_enemy and his coordinates and flee in the opposit direction
 end
 
 -- main for workers
@@ -280,8 +281,8 @@ function Creature:onRestart()
   --reset some variables all reset_wait msecs
   future = now + reset_wait
   koth_walkable = reset_koth_walkable
-  food_koordx = false
-  food_koordy = false
+--  food_koordx = false
+--  food_koordy = false
 end
   
 
