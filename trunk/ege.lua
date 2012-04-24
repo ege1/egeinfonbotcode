@@ -1,3 +1,4 @@
+debug = true
 --
 --------------------------------------------------------------------------
 -- ToDo
@@ -10,9 +11,10 @@
 --------------------------------------------------------------------------
 --
 --set food coords if food is bigger min_food
-min_food = 5
+min_food = 4000 -- one point holds max 9999
 --begin heal below that value
 heal_health = 25
+end_heal_health = 100
 -- be koth only when health is over that
 koth_walk_health = 70
 koth_leave_health = 15
@@ -29,6 +31,10 @@ reset_wait = 10000
 worker = 0
 mum = 1
 fly = 2
+-- values for types
+worker_max_food = 10000
+mum_max_food = 20000
+fly_max_food = 5000
 -- kill current koth
 kill_koth = true
 -- become koth
@@ -66,10 +72,12 @@ my_workers = 0
 my_mums = 0
 my_flys = 0
 king = false
-food_koord_val = false
+food_koord_val = 0
+here_food = 0
 food_koordx = false
 food_koordy = false
 koth_walkable = true
+
 -- reset values, get resettet every reset_wait msecs
 
 --reset_king = false
@@ -110,16 +118,19 @@ end
 -- search for food
 function Creature:search_food()
   set_message(self.id, "hungry")
+  self.bex, self.bey = get_pos(self.id)
+  self.walkx, self.walky = getRandomCoords()
   if food_koordx and food_koordy and food_koord_val > 1 then
-	self.walkx = food_koordx
-	self.walky = food_koordy
-	set_message(self.id, "kfood") 
-  else
-	self.walkx, self.walky = getRandomCoords()
-	set_message(self.id, "sfood")
+    self.walkx = food_koordx
+    self.walky = food_koordy
+    set_message(self.id, "kfood") 
+  elseif self.walkx ~= self.bex or self.walky ~= self.bey then
+    set_message(self.id, "sfood")
   end
-  set_path( self.id, self.walkx, self.walky )
-  set_state( self.id, CREATURE_WALK )
+  if get_state(self.id) ~= CREATURE_WALK then
+    set_path( self.id, self.walkx, self.walky )
+    set_state( self.id, CREATURE_WALK )
+  end
 end
 
 
@@ -129,27 +140,38 @@ function Creature:eat()
   set_state( self.id, CREATURE_EAT )
 end
 
+-- heal
+function Creature:heal()
+  while get_health(self.id) < end_heal_health and get_food(self.id) > 1 and not get_state(self.id) ~= CREATURE_ATTACK and not get_state(self.id) ~= CREATURE_CONVERT do
+    set_state(self.id, CREATURE_HEAL)
+    set_message(self.id, "HEAL")
+    self:wait_for_next_round()
+  end
+end
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_state( self.id ) == CREATURE_CONVERT then
-	return
-  elseif get_typ1 and get_typ2 and my_creatures => typ2_min and mums >= typ2_min_typ1 and not flys >= mums and not flys >= max_flys then
+  if get_typ1 and get_typ2 and my_creatures >= typ2_min and mums >= typ2_min_typ1 and flys <= mums and flys <= max_flys then
 	set_convert( self.id, fly )
-	flys = flys + 1
+	my_flys = my_flys + 1
   elseif get_typ1 then
+	print ("get_type1")
 	set_convert( self.id, mum )
-	mums = mums + 1
+	my_mums = my_mums + 1
   else
 	print ("No clue what to do now, called creature convert, but no conversion chosen")
 	return
   end
   set_state( self.id, CREATURE_CONVERT )
   set_message(self.id, "converting")
+  while get_state( self.id ) == CREATURE_CONVERT do
+    self:wait_for_next_round()
+  end
+  set_message(self.id, "converted")
 end
 
 -- become koth
 function Creature:become_koth()
-  local x,y = get_koth_pos()
+  local kothx,kothy = get_koth_pos()
   if get_king and not king then
 	set_message (self.id, "WalkKoth")
 	lauf = set_path( self.id, kothx, kothy )
@@ -194,18 +216,18 @@ function Creature:main_worker()
 	food_koordx = mex
 	food_koordy = mey
 	food_koord_val = here_food
-  elseif here_food <= 1 and mex == food_koordx and mey == food_koordx then
+  elseif here_food <= 1 and mex == food_koordx and mey == food_koordy then
 	food_koord_val = here_food
 	food_koordx = false
 	food_koordy = false
   end
-  local state = get_state()
+  local state = get_state(self.id)
   local enemyid, enemyx, enemyy, enemynum, enemydist = get_nearest_enemy(self.id)
   king_id = king_player()
   if king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
-	  if health < heal_health and food > 1 and state not "CREATURE_CONVERT" and state not "CREATURE_ATTACK" then
+	  if health < heal_health and food > 1 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
 		self:heal()
 		return
 	  elseif health < koth_leave_health then
@@ -219,20 +241,30 @@ function Creature:main_worker()
 	  self:wait_for_next_round()
 	end
   end
-  if get_type(enemyid) not 2 then
-	local enemyid = false
+  if enemyid then
+    if get_type(enemyid) ~= 2 then
+	  local enemyid = false
+    end
   end
-  -- make some decisions
-  if health > convert_health and food > convert_food and state not "CREATURE_CONVERT" and state not "CREATURE_ATTACK" then
-	self:convert()
-  elseif health < heal_health and food > 1 and state not "CREATURE_CONVERT" and state not "CREATURE_ATTACK" then
+  local now_food = convert_food + 500
+  if health <= convert_health and food > now_food and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
 	self:heal()
-  elseif here_food > 0 and state not "CREATURE_CONVERT" and state not "CREATURE_ATTACK" then
+  end
+--  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
+  -- make some decisions
+  if health > convert_health and food > convert_food and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+    print ("main before convert")
+	self:convert()
+  elseif health < heal_health and food > 1 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+	self:heal()
+  elseif here_food > 0 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" and food < worker_max_food then
 	self:eat()
-  elseif enemyid and enemydist < typ0_attack_range and state not "CREATURE_CONVERT" and typ0_kill == true then
+  elseif enemyid and enemydist and enemydist < typ0_attack_range and state ~= "CREATURE_CONVERT" and typ0_kill == true then
+    print ("main before attack")
 	self:attack(enemyid)
 	-- should we geht koth?
-  elseif health > koth_walk_health and koth_walkable and get_king and not king and state not "CREATURE_CONVERT" and state not "CREATURE_ATTACK" then
+  elseif health > koth_walk_health and koth_walkable and get_king and not king and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+	print ("before become koth")
 	self:become_koth()
 	-- something missing?
   else
@@ -297,20 +329,21 @@ function Creature:onKilled(killer)
 	print("Creature " .. self.id .. " died")
   end
   my_creatures = my_creatures - 1
-  local type = get_type(self.id)
+--  local type = get_type(self.id)
   if self.id == king then
 	king = false
   end
-  if type == worker then
+--[[  if type == worker then
 	workers = workers - 1
   elseif type == mum then
 	mums = mums - 1
   elseif type == fly then
 	flys = flys - 1
   end
+]]
 end
 
-function info()
+--[[function info()
   local chkd=0
   for id, creature in pairs(creatures) do
 	local posx,posy=get_pos(id)
@@ -320,15 +353,16 @@ function info()
   if king then
 	print("king" .. king )
   end
+--]]
 --[[  print ("Wir haben " .. my_creatures .. " Kreaturen")
   print ("Wir haben " .. my_workers .. " Worker")
   print ("Wir haben " .. my_mums .. " Mums")
   print ("Wir haben " .. my_flys .. " Flies")
   --]]
-  time = game_time()
+--[[  time = game_time()
   COUNT=chkd
 end
-	                                                                                                                                         
+--]]	                                                                                                                                         
 -- Your Creature Logic here :-)
 function Creature:main()
   -- just for security
@@ -341,17 +375,15 @@ function Creature:main()
   if now >= future then
 	Creature:onRestart()
   end
-  local type = get_type(self.id)
-  if type == worker then
+  self.type = get_type(self.id)
+  if self.type == worker then
 	self:main_worker()
-  elseif type == mum then
+  elseif self.type == mum then
 	self:main_mum()
-  elseif type == fly then
+  elseif self.type == fly then
 	self:main_fly()
   else
 	print ("FATAL: unknown type " .. type)
   end
+  self:wait_for_next_round()
 end
---            self:wait_for_next_round()
-
-			                             
