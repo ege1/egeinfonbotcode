@@ -220,29 +220,29 @@ end
 -- main for workers
 function Creature:main_worker()
   -- get some infos of me
-  local health = get_health(self.id)
-  local food = get_food(self.id)
-  local mex,mey = get_pos(self.id)
-  local here_food = get_tile_food(self.id)
-  if here_food >= min_food and here_food > food_koord_val then
-	food_koordx = mex
-	food_koordy = mey
+  self.health = get_health(self.id)
+  self.food = get_food(self.id)
+  self.mex,self.mey = get_pos(self.id)
+  self.here_food = get_tile_food(self.id)
+  if self.here_food >= min_food and self.here_food > food_koord_val then
+	food_koordx = self.mex
+	food_koordy = self.mey
 	food_koord_val = here_food
-  elseif here_food <= 1 and mex == food_koordx and mey == food_koordy then
+  elseif self.here_food <= 1 and selfmex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
 	food_koordy = false
   end
-  local state = get_state(self.id)
-  local enemyid, enemyx, enemyy, enemynum, enemydist = get_nearest_enemy(self.id)
+  self.state = get_state(self.id)
+  self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
   king_id = king_player()
   if king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
-	  if health < heal_health and food > 1 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+	  if self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 		self:heal()
 		return
-	  elseif health < koth_leave_health then
+	  elseif self.health < koth_leave_health then
 		king = false
 		self:search_food()
 		return
@@ -253,28 +253,28 @@ function Creature:main_worker()
 	  self:wait_for_next_round()
 	end
   end
-  if enemyid then
-    if get_type(enemyid) ~= 2 then
-	  local enemyid = false
+  if self.enemyid then
+    if get_type(self.enemyid) ~= 2 then
+	  self.enemyid = false
     end
   end
-  local now_food = convert_food + 500
-  if health <= convert_health and food > now_food and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+  self.now_food = convert_food + 500
+  if self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   end
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
   -- make some decisions
-  if health > convert_health and food > convert_food and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+  if self.health > convert_health and self.food > convert_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:convert()
-  elseif health < heal_health and food > 1 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+  elseif self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
-  elseif here_food > 0 and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" and food < worker_max_food then
+  elseif here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
-  elseif enemyid and enemydist and enemydist < typ0_attack_range and state ~= "CREATURE_CONVERT" and typ0_kill == true then
+  elseif enemyid and enemydist and enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
     print ("main before attack")
 	self:attack(enemyid)
 	-- should we geht koth?
-  elseif health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	print ("before become koth")
 	self:become_koth()
 	-- something missing?
