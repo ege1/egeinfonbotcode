@@ -6,11 +6,16 @@ debug = true
 -- if food here, search around
 -- if food here, remember Position
 -- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
--- set variable if one creature is walking koth, no need for all to run there
 -- while for attack, only stop if health is too low
 -- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
 -- attack king if present
--- if we are king and no enemy nearby, birth
+-- if we are king with other creature and no enemy nearby, birth
+
+--------------------------------------------------------------------------
+-- Done
+--------------------------------------------------------------------------
+-- set variable if one creature is walking koth, no need for all to run there
+-- 
 --------------------------------------------------------------------------
 -- Variables
 --------------------------------------------------------------------------
@@ -23,6 +28,7 @@ end_heal_health = 100
 -- be koth only when health is over that
 koth_walk_health = 70
 koth_leave_health = 15
+walking_koth = false
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
 convert_food = 8000 --typ1 8000 typ2 5000
@@ -177,8 +183,9 @@ end
 -- become koth
 function Creature:become_koth()
   local kothx,kothy = get_koth_pos()
-  if get_king and not king then
+  if get_king and not king and not walking_koth then
 	set_message (self.id, "WalkKoth")
+	walking_koth = self.id
 	lauf = set_path( self.id, kothx, kothy )
 	if not lauf then
 	  koth_walkable = false
@@ -267,7 +274,7 @@ function Creature:main_worker()
     print ("main before attack")
 	self:attack(enemyid)
 	-- should we geht koth?
-  elseif health > koth_walk_health and koth_walkable and get_king and not king and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
+  elseif health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and state ~= "CREATURE_CONVERT" and state ~= "CREATURE_ATTACK" then
 	print ("before become koth")
 	self:become_koth()
 	-- something missing?
