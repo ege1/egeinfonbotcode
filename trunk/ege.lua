@@ -6,6 +6,11 @@ debug = true
 -- if food here, search around
 -- if food here, remember Position
 -- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
+-- set variable if one creature is walking koth, no need for all to run there
+-- while for attack, only stop if health is too low
+-- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
+-- attack king if present
+-- if we are king and no enemy nearby, birth
 --------------------------------------------------------------------------
 -- Variables
 --------------------------------------------------------------------------
@@ -19,7 +24,7 @@ end_heal_health = 100
 koth_walk_health = 70
 koth_leave_health = 15
 -- convert only if over the following values
-convert_health = 85 --difficult, now values none, lets try (was 95)
+convert_health = 85 --difficult, now values none, lets try (was 95).-
 convert_food = 8000 --typ1 8000 typ2 5000
 -- birth
 birth = true -- should we spawn?
@@ -270,6 +275,15 @@ function Creature:main_worker()
 	self:search_food()
   end
 end
+
+--------------------------------------------------------------------------
+-- Main Mum
+--------------------------------------------------------------------------
+
+function Creature:main_mum()
+  return
+end
+
 --------------------------------------------------------------------------
 -- Default Code
 --------------------------------------------------------------------------
@@ -397,5 +411,5 @@ function Creature:main()
   else
 	print ("FATAL: unknown type " .. type)
   end
-  self:wait_for_next_round()
+--should not be needed here  self:wait_for_next_round()
 end
