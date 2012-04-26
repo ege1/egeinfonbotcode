@@ -3,7 +3,7 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- create mind distance for known food walk
+-- change function for nearby food search, dont set hard new coordinates, use random but not with world coordinates, jsut with around coordinates....
 -- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
 -- while for attack, only stop if health is too low
 -- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
@@ -16,6 +16,7 @@ debug = true
 -- set variable if one creature is walking koth, no need for all to run there
 -- if food here, search around
 -- if food here, remember Position
+-- create mind distance for known food walk
 -- 
 --------------------------------------------------------------------------
 -- Variables
@@ -25,6 +26,9 @@ debug = true
 min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
+near_search_distance = 700
+-- max food distance we walk if someone reports food
+max_food_distance = 5000
 --begin heal below that value
 heal_health = 25
 end_heal_health = 100
@@ -135,15 +139,15 @@ function Creature:getNearbyCoords()
   local x1, y1, x2, y2 = world_size()
   self.nearx,self.neary = get_pos(self.id)
   if self.direction == "+" then
-    self.newx = self.nearx + 255
-    self.newy = self.neary + 255
+    self.newx = self.nearx + near_search_distance
+    self.newy = self.neary + near_search_distance
   elseif self.direction == "-" then
-    self.newx = self.nearx - 255
-    self.newy = self.neary - 255
+    self.newx = self.nearx - near_search_distance
+    self.newy = self.neary - near_search_distance
   else
     self.direction = "+"
-    self.newx = self.nearx + 255
-    self.newy = self.neary + 255
+    self.newx = self.nearx + near_search_distance
+    self.newy = self.neary + near_search_distance
   end
   if self.newx >= x1 or self.newx >= x2 or self.newy <= y1 or self.newy >= y2 then
     if self.direction == "+" then
@@ -177,12 +181,14 @@ function Creature:search_food()
     end
   end
   set_message(self.id, "sfood")
-  if food_koordx and food_koordy and food_koord_val > 1 then
-    self.walkx = food_koordx
-    self.walky = food_koordy
-    set_path( self.id, self.walkx, self.walky )
-    set_state( self.id, CREATURE_WALK )
-    set_message(self.id, "kfood") 
+  if food_koordx and food_koordy and food_koord_val > 1 and food_reporter then
+    if get_distance(self.id, food_reporter) < max_food_distance then
+      self.walkx = food_koordx
+      self.walky = food_koordy
+      set_path( self.id, self.walkx, self.walky )
+      set_state( self.id, CREATURE_WALK )
+      set_message(self.id, "kfood") 
+    end
   end
   if get_state(self.id) ~= CREATURE_WALK then
     set_path( self.id, self.walkx, self.walky )
@@ -289,10 +295,12 @@ function Creature:main_worker()
 	food_koordx = self.mex
 	food_koordy = self.mey
 	food_koord_val = self.here_food
+	food_reporter = self.id
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
 	food_koordy = false
+	food_reporter = false
   end
   self.state = get_state(self.id)
   self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
@@ -359,6 +367,7 @@ function Creature:main_mum()
 	food_koordx = self.mex
 	food_koordy = self.mey
 	food_koord_val = self.here_food
+	food_reporter = self.id
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
@@ -498,6 +507,9 @@ function Creature:onKilled(killer)
   if self.id == king then
 	king = false
   end
+  if self.id == food_reporter then
+    food_reporter = false
+  end
   if walking_koth == self.id then
      walking_koth = false
   end
@@ -533,6 +545,10 @@ function Creature:main()
 	  king = false
 	end
   end
+--debug
+--  if food_reporter then
+--    print("Distanz: " ..get_distance(self.id, food_reporter))
+--  end
   self.chkd = 0
   self.workers = 0
   self.mums = 0
