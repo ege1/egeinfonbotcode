@@ -3,8 +3,7 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- if food here, search around
--- if food here, remember Position
+-- create mind distance for known food walk
 -- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
 -- while for attack, only stop if health is too low
 -- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
@@ -15,13 +14,17 @@ debug = true
 -- Done
 --------------------------------------------------------------------------
 -- set variable if one creature is walking koth, no need for all to run there
+-- if food here, search around
+-- if food here, remember Position
 -- 
 --------------------------------------------------------------------------
 -- Variables
 --------------------------------------------------------------------------
 --
 --set food coords if food is bigger min_food
-min_food = 4000 -- one point holds max 9999
+min_food = 5000 -- one point holds max 9999
+-- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
+min_heal_food = 700
 --begin heal below that value
 heal_health = 25
 end_heal_health = 100
@@ -89,7 +92,7 @@ koth_walkable = true
 
 -- reset values, get resettet every reset_wait msecs
 -- reset some variables to default values if r is pressed or every below msecs
-reset_wait = 10000
+reset_wait = 30000
 future = reset_wait
 --reset_king = false
 reset_koth_walkable = true
@@ -173,12 +176,13 @@ function Creature:search_food()
       self.walkx, self.walky = self:getRandomCoords()
     end
   end
+  set_message(self.id, "sfood")
   if food_koordx and food_koordy and food_koord_val > 1 then
     self.walkx = food_koordx
     self.walky = food_koordy
+    set_path( self.id, self.walkx, self.walky )
+    set_state( self.id, CREATURE_WALK )
     set_message(self.id, "kfood") 
-  elseif self.walkx ~= self.bex or self.walky ~= self.bey then
-    set_message(self.id, "sfood")
   end
   if get_state(self.id) ~= CREATURE_WALK then
     set_path( self.id, self.walkx, self.walky )
@@ -324,13 +328,13 @@ function Creature:main_worker()
   -- make some decisions
   if self.health > convert_health and self.food > convert_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:convert()
-  elseif self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
   elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
     print ("main before attack")
-	self:attack(enemyid)
+	self:attack(self.enemyid)
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
@@ -355,7 +359,7 @@ function Creature:main_mum()
 	food_koordx = self.mex
 	food_koordy = self.mey
 	food_koord_val = self.here_food
-  elseif self.here_food <= 1 and selfmex == food_koordx and self.mey == food_koordy then
+  elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
 	food_koordy = false
@@ -371,6 +375,7 @@ function Creature:main_mum()
 		return
 	  elseif self.health < koth_leave_health then
 		king = false
+		walking_koth = false
 		self:search_food()
 		return
 	  else
@@ -388,7 +393,7 @@ function Creature:main_mum()
   -- make some decisions
   if self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
 	self:birth()
-  elseif self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
@@ -396,13 +401,15 @@ function Creature:main_mum()
     print ("main before attack")
 	self:attack(self.enemyid)
 	-- should we geht koth?
+  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
-	print ("before become koth")
 	self:become_koth()
 	-- something missing?
   else
 	self:search_food()
   end
+--  print("food: " .. self.food)
 end
 
 --------------------------------------------------------------------------
@@ -454,6 +461,25 @@ function Creature:onRestart()
   print("Food_koord_val = " .. food_koord_val)
 --  food_koordx = false
 --  food_koordy = false
+  food_koord_val = 0
+-- from previos set info function
+  local chkd=0
+  for id, creature in pairs(creatures) do
+	local posx,posy=get_pos(id)
+	print(id .. ": " ..get_type(id) .. " on "..posx..":"..posy .. "==> hp:"..get_health(id)..". food:"..get_food(id) .." state:" .. get_state(id).." punkte: "..player_score(player_number))
+	chkd=chkd+1
+  end
+  if king then
+	print("king" .. king )
+  end
+  print ("Wir haben " .. my_creatures .. " Kreaturen")
+  print ("Wir haben " .. my_workers .. " Worker")
+  print ("Wir haben " .. my_mums .. " Mums")
+  print ("Wir haben " .. my_flys .. " Flies")
+--  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
+
+  time = game_time()
+  COUNT=chkd
 end
   
 
