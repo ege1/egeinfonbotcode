@@ -31,13 +31,11 @@ koth_leave_health = 15
 walking_koth = false
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
-convert_food = 8000 --typ1 8000 typ2 5000
+convert_food = 8500 --typ1 8000 typ2 5000
 -- birth
 birth = true -- should we spawn?
 birth_health = 25 -- min 20
 birth_food = 6000  -- min 5000
--- reset some variables to default values if r is pressed or every below msecs
-reset_wait = 10000
 --types
 worker = 0
 mum = 1
@@ -64,12 +62,12 @@ typ2_become_king = true
 
 -- convert options
 get_typ1 = true
-get_typ2 = true
+get_typ2 = false
 
 -- convert to type only if min typ_min creatures present
 -- thats nonsense: typ1_min = 1
 typ2_min = 2
-typ2_min_typ1 = 1
+typ2_min_typ1 = 2
 max_flys = 1
 
 -- if fleeing, we need to flee more than enemy can reach
@@ -90,7 +88,9 @@ food_koordy = false
 koth_walkable = true
 
 -- reset values, get resettet every reset_wait msecs
-
+-- reset some variables to default values if r is pressed or every below msecs
+reset_wait = 10000
+future = reset_wait
 --reset_king = false
 reset_koth_walkable = true
 
@@ -116,10 +116,46 @@ reset_koth_walkable = true
 --------------------------------------------------------------------------
 
 -- get random koords which fit on map
-function getRandomCoords ()
+function Creature:getRandomCoords()
   local x1, y1, x2, y2 = world_size()
-  return math.random(x1,x2), math.random(y1,y2)
+  self.new_x = math.random(x1,x2)
+  self.new_y = math.random(y1,y2)
+  while not self:set_path(self.new_x, self.new_y) do
+    self.new_x = math.random(x1,x2)
+    self.new_y = math.random(y1,y2)
+  end
+  return self.new_x, self.new_y
 end
+
+-- get coords nearby which fit on map
+function Creature:getNearbyCoords()
+  local x1, y1, x2, y2 = world_size()
+  self.nearx,self.neary = get_pos(self.id)
+  if self.direction == "+" then
+    self.newx = self.nearx + 255
+    self.newy = self.neary + 255
+  elseif self.direction == "-" then
+    self.newx = self.nearx - 255
+    self.newy = self.neary - 255
+  else
+    self.direction = "+"
+    self.newx = self.nearx + 255
+    self.newy = self.neary + 255
+  end
+  if self.newx >= x1 or self.newx >= x2 or self.newy <= y1 or self.newy >= y2 then
+    if self.direction == "+" then
+      self.direction = "-"
+    else
+      self.direction = "+"
+    end
+  end
+  if not self:set_path(self.newx, self.newy) then
+    self.newx, self.newy = self:getRandomCoords()
+  end
+  self.was_food = 0
+  return self.newx, self.newy
+end
+
 function getKothCoords ()
   kothx, kothy = get_koth_pos()
   return kothx, kothy
@@ -128,9 +164,15 @@ end
 
 -- search for food
 function Creature:search_food()
-  set_message(self.id, "hungry")
+--  set_message(self.id, "hungry")
   self.bex, self.bey = get_pos(self.id)
-  self.walkx, self.walky = getRandomCoords()
+  if get_state(self.id) ~= CREATURE_WALK then
+    if self.was_food > 0 then
+      self.walkx, self.walky = self:getNearbyCoords()
+    else
+      self.walkx, self.walky = self:getRandomCoords()
+    end
+  end
   if food_koordx and food_koordy and food_koord_val > 1 then
     self.walkx = food_koordx
     self.walky = food_koordy
@@ -147,6 +189,7 @@ end
 
 -- eat
 function Creature:eat()
+  self.was_food = get_tile_food(self.id)
   set_message(self.id, "eating")
   set_state( self.id, CREATURE_EAT )
 end
@@ -161,13 +204,14 @@ function Creature:heal()
 end
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys <= my_mums and my_flys <= max_flys then
+  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys <= my_mums and my_flys < max_flys then
+	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums)
 	set_convert( self.id, fly )
-	my_flys = my_flys + 1
+--	my_flys = my_flys + 1
   elseif get_typ1 then
-	print ("get_type1")
+	print ("creature " .. self.id .. " converting to mum")
 	set_convert( self.id, mum )
-	my_mums = my_mums + 1
+--	my_mums = my_mums + 1
   else
 	print ("No clue what to do now, called creature convert, but no conversion chosen")
 	return
@@ -182,13 +226,14 @@ end
 
 -- become koth
 function Creature:become_koth()
-  local kothx,kothy = get_koth_pos()
-  if get_king and not king and not walking_koth then
+  kothx,kothy = get_koth_pos()
+  if get_king and not king then
 	set_message (self.id, "WalkKoth")
 	walking_koth = self.id
 	lauf = set_path( self.id, kothx, kothy )
 	if not lauf then
 	  koth_walkable = false
+	  walking_koth = false
 	  print("koth seams not walkable")
 	  self:search_food()
 	else
@@ -196,6 +241,11 @@ function Creature:become_koth()
 	  set_path(self.id, kothx,kothy)
 	  set_state( self.id, CREATURE_WALK )
 	  set_message (self.id, "WalkKoth")
+	  self.mex,self.mey = get_pos(self.id)
+	  while self.mex ~= kothx and self.mey ~= kothy do
+	    self.mex,self.mey = get_pos(self.id)
+	    self:wait_for_next_round()
+	  end
 	end
   else
 	print ("Called become_koth but get_king not set or king already exists")
@@ -222,6 +272,7 @@ function Creature:birth()
   while self:is_spawning() do
 	self:wait_for_next_round()
   end
+  print("new worker born")
 end
 -- main for workers
 function Creature:main_worker()
@@ -233,8 +284,8 @@ function Creature:main_worker()
   if self.here_food >= min_food and self.here_food > food_koord_val then
 	food_koordx = self.mex
 	food_koordy = self.mey
-	food_koord_val = here_food
-  elseif self.here_food <= 1 and selfmex == food_koordx and self.mey == food_koordy then
+	food_koord_val = self.here_food
+  elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
 	food_koordy = false
@@ -250,6 +301,7 @@ function Creature:main_worker()
 		return
 	  elseif self.health < koth_leave_health then
 		king = false
+		walking_koth = false
 		self:search_food()
 		return
 	  else
@@ -274,14 +326,15 @@ function Creature:main_worker()
 	self:convert()
   elseif self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
-  elseif here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
+  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
-  elseif enemyid and enemydist and enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
+  elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
     print ("main before attack")
 	self:attack(enemyid)
 	-- should we geht koth?
+  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
-	print ("before become koth")
 	self:become_koth()
 	-- something missing?
   else
@@ -301,7 +354,7 @@ function Creature:main_mum()
   if self.here_food >= min_food and self.here_food > food_koord_val then
 	food_koordx = self.mex
 	food_koordy = self.mey
-	food_koord_val = here_food
+	food_koord_val = self.here_food
   elseif self.here_food <= 1 and selfmex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
@@ -337,11 +390,11 @@ function Creature:main_mum()
 	self:birth()
   elseif self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
-  elseif here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
+  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
-  elseif enemyid and enemydist and enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
+  elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
     print ("main before attack")
-	self:attack(enemyid)
+	self:attack(self.enemyid)
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	print ("before become koth")
@@ -350,8 +403,6 @@ function Creature:main_mum()
   else
 	self:search_food()
   end
-end
-  return
 end
 
 --------------------------------------------------------------------------
@@ -366,6 +417,7 @@ function Creature:onSpawned(parent)
   else
 	print("Creature " .. self.id .. " spawned")
   end
+  self.was_food = 0
   my_creatures = my_creatures + 1
   my_workers = my_workers + 1
 end
@@ -396,6 +448,10 @@ function Creature:onRestart()
   --reset some variables all reset_wait msecs
   future = now + reset_wait
   koth_walkable = reset_koth_walkable
+  if walking_koth then
+    print("walking_koth = " .. walking_koth)
+    end
+  print("Food_koord_val = " .. food_koord_val)
 --  food_koordx = false
 --  food_koordy = false
 end
@@ -415,6 +471,9 @@ function Creature:onKilled(killer)
 --  local type = get_type(self.id)
   if self.id == king then
 	king = false
+  end
+  if walking_koth == self.id then
+     walking_koth = false
   end
 end
 
@@ -463,7 +522,7 @@ function Creature:main()
     end
   end
   my_workers = self.workers
-  my_mums = self.mums
+  my_mums = self.mums 
   my_flys = self.flys
   my_creatures = self.chkd
 --  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
@@ -477,6 +536,7 @@ function Creature:main()
   elseif self.type == mum then
 	self:main_mum()
   elseif self.type == fly then
+    print("calling main_fly cause self.type = " .. self.type)
 	self:main_fly()
   else
 	print ("FATAL: unknown type " .. type)
