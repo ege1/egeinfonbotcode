@@ -27,15 +27,15 @@ debug = true
 min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
-near_search_distance = 300
+near_search_distance = 500
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
 --begin heal below that value
 heal_health = 75
 end_heal_health = 100
 -- be koth only when health is over that
-koth_walk_health = 70
-koth_leave_health = 5
+koth_walk_health = 40 --70
+koth_leave_health = 2
 walking_koth = false
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
@@ -194,6 +194,7 @@ function Creature:getNearbyCoords()
     self.new_x, self.new_y = self:getRandomCoords()
   end
   self.was_food = 0
+  print("nearby Coords: " .. self.new_x .. ":" .. self.new_y)
   return self.new_x, self.new_y
 end
 
@@ -299,9 +300,20 @@ function Creature:become_koth()
 end
 -- attack enemy
 function Creature:attack(enemyid)
-	set_target( self.id, enemyid )
-	set_state( self.id, CREATURE_ATTACK )
-	set_message(self.id, "KILL")
+	self.enemyid = enemyid
+	if get_type(self.id) == 0 then
+	  self.attack_range = typ0_attack_range
+	else
+	  self.attack_range = typ1_attack_range
+	end
+	while self.enemydist < self.attack_range do
+	  self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
+	  set_target( self.id, self.enemyid )
+	-- 	print("DEBUG: self.id, enemyid" .. self.id .. ":" .. self.enemyid)
+	  set_state( self.id, CREATURE_ATTACK )
+	  set_message(self.id, "KILL")
+	end
+	set_message(self.id, "KILLED :)")
 end
 
 -- flee until far enough
@@ -536,13 +548,13 @@ function Creature:onAttacked(attacker)
   local attacker_type = get_type(attacker)
   local my_type = get_type(self.id)
   if my_type == worker and attacker_type == fly then
-	self.attack(attacker)
+	self:attack(attacker)
   elseif my_type == mum then
-	self.attack(attacker)
+	self:attack(attacker)
   elseif my_type == fly then
-	self.flee(attacker)
+	self:flee(attacker)
   else
-	self.flee(attacker)
+	self:flee(attacker)
   end
 end
 
@@ -569,7 +581,7 @@ function Creature:onRestart()
   if koth_walkable then
 	print("koth_walkable")
   end
-  koth_walkable = reset_koth_walkable
+  --koth_walkable = reset_koth_walkable
   food_koord_val = 0
 -- from previos set info function
   local chkd=0
@@ -687,3 +699,5 @@ function Creature:main()
   end
 --should not be needed here  self:wait_for_next_round()
 end
+.
+s
