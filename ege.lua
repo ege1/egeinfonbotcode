@@ -5,8 +5,7 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- Flee must be improved: CREATURE_ATTACK seems not to be set if attacked....
--- maybe set state fleeing and flee if that state is set until flee_min_range
+--Feed mum....
 --------------------------------------------------------------------------
 -- Done
 --------------------------------------------------------------------------
@@ -29,7 +28,7 @@ debug = true
 min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
-near_search_distance = 300
+near_search_distance = 400
 default_nearby_count = 7
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
