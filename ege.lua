@@ -27,7 +27,8 @@ debug = true
 min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
-near_search_distance = 500
+near_search_distance = 300
+default_nearby_count = 5
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
 --begin heal below that value
@@ -35,7 +36,7 @@ heal_health = 75
 end_heal_health = 100
 -- be koth only when health is over that
 koth_walk_health = 40 --70
-koth_leave_health = 2
+koth_leave_health = 5
 walking_koth = false
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
@@ -194,7 +195,7 @@ function Creature:getNearbyCoords()
     self.new_x, self.new_y = self:getRandomCoords()
   end
   self.was_food = 0
-  print("nearby Coords: " .. self.new_x .. ":" .. self.new_y)
+--   print("nearby Coords: " .. self.new_x .. ":" .. self.new_y)
   return self.new_x, self.new_y
 end
 
@@ -209,7 +210,12 @@ function Creature:search_food()
 --  set_message(self.id, "hungry")
   self.bex, self.bey = get_pos(self.id)
   if get_state(self.id) ~= CREATURE_WALK then
-    if self.was_food > 0 then
+	if self.nearby_count and self.nearby_count > 0 then
+	  self.nearby_count = self.nearby_count - 1
+      self.walkx, self.walky = self:getNearbyCoords()
+-- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
+    elseif self.was_food > 0 then
+	  self.nearby_count = default_nearby_count
       self.walkx, self.walky = self:getNearbyCoords()
 -- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
     else
@@ -307,13 +313,17 @@ function Creature:attack(enemyid)
 	  self.attack_range = typ1_attack_range
 	end
 	while self.enemydist < self.attack_range do
+	  if not self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id) then
+		return
+	  end
 	  self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
 	  set_target( self.id, self.enemyid )
 	-- 	print("DEBUG: self.id, enemyid" .. self.id .. ":" .. self.enemyid)
 	  set_state( self.id, CREATURE_ATTACK )
 	  set_message(self.id, "KILL")
+	  self:wait_for_next_round()
 	end
-	set_message(self.id, "KILLED :)")
+	set_message(self.id, ":):):)")
 end
 
 -- flee until far enough
@@ -442,7 +452,10 @@ function Creature:main_mum()
 	end
   end
   self.now_food = birth_food + 500
-  if self.health <= birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
+  if self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
+--    print ("main before attack")
+	self:attack(self.enemyid)
+  elseif self.health <= birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
   -- make some decisions
@@ -452,10 +465,6 @@ function Creature:main_mum()
 	self:heal()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
-  elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
---    print ("main before attack")
-	self:attack(self.enemyid)
-	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -535,9 +544,10 @@ function Creature:onSpawned(parent)
   else
 	print("Creature " .. self.id .. " spawned")
   end
-  self.was_food = 0
   my_creatures = my_creatures + 1
   my_workers = my_workers + 1
+  self.was_food = 0
+  self.nearby_count = 0
 end
 
 
@@ -601,6 +611,9 @@ function Creature:onRestart()
 
   time = game_time()
   COUNT=chkd
+  self.was_food = 0
+  self.nearby_count = 0
+
 end
   
 
@@ -701,3 +714,4 @@ function Creature:main()
 end
 .
 s
+
