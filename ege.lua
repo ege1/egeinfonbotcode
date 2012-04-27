@@ -344,11 +344,22 @@ end
 
 -- flee until far enough
 function Creature:flee(attacker)
---flee_min_range = 1000
---flee only if we are fly and attacker is mum or worker or
--- if we are worker or fly and attacker is mum
--- flee until attacker is farer then flee_min_range
 -- get_nearest_enemy and his coordinates and flee in the opposit direction
+--flee_min_range = 1000
+  self.attacker = attacker
+  local x1, y1, x2, y2 = world_size()
+  while get_distance(self.id, self.attacker) < flee_min_range do
+    self.new_x = math.random(x1,x2)
+    self.new_y = math.random(y1,y2)
+    while not self:set_path(self.new_x, self.new_y) do
+      self.new_x = math.random(x1,x2)
+      self.new_y = math.random(y1,y2)
+    end
+    set_path(self.id, self.new_x,self.new_y)
+    set_state( self.id, CREATURE_WALK )
+    set_message("fleee")
+    self:wait_for_next_round()
+  end
 end
 
 function Creature:birth()
@@ -736,4 +747,3 @@ function Creature:main()
 end
 .
 s
-
