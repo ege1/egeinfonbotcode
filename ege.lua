@@ -3,7 +3,8 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- Implement fly
+-- Flee must be improved: CREATURE_ATTACK seems not to be set if attacked....
+-- maybe set state fleeing and flee if that state is set until flee_min_range
 --------------------------------------------------------------------------
 -- Done
 --------------------------------------------------------------------------
@@ -366,10 +367,9 @@ function Creature:main_worker()
   self.now_food = convert_food + 500
   if self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
-  end
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
   -- make some decisions
-  if self.health > convert_health and self.food > convert_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health > convert_health and self.food > convert_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:convert()
   elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
@@ -432,10 +432,9 @@ function Creature:main_mum()
   self.now_food = birth_food + 500
   if self.health <= birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
-  end
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
   -- make some decisions
-  if self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
 	self:birth()
   elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
@@ -454,6 +453,62 @@ function Creature:main_mum()
 	self:search_food()
   end
 --  print("food: " .. self.food)
+end
+
+--------------------------------------------------------------------------
+-- Main Fly
+--------------------------------------------------------------------------
+function Creature:main_fly()
+  -- get some infos of me
+  self.health = get_health(self.id)
+  self.food = get_food(self.id)
+  self.mex,self.mey = get_pos(self.id)
+  self.here_food = get_tile_food(self.id)
+  if self.here_food >= min_food and self.here_food > food_koord_val then
+	food_koordx = self.mex
+	food_koordy = self.mey
+	food_koord_val = self.here_food
+	food_reporter = self.id
+  elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
+	food_koord_val = 0
+	food_koordx = false
+	food_koordy = false
+	food_reporter = false
+  end
+  self.state = get_state(self.id)
+  king_id = king_player()
+  if king then
+	while king_id == self.id do
+	  -- even if king, check health and heal if needed
+	  if self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+		self:heal()
+		return
+	  elseif self.health < koth_leave_health then
+		king = false
+		walking_koth = false
+		self:search_food()
+		return
+	  else
+		king = self.id
+	  end
+	  set_message(self.id, "KING")
+	  self:wait_for_next_round()
+	end
+  end
+  self.now_food = convert_food + 500
+  if self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:heal()
+  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
+	self:eat()
+	-- should we geht koth?
+  elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:become_koth()
+  elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:become_koth()
+	-- something missing?
+  else
+	self:search_food()
+  end
 end
 
 --------------------------------------------------------------------------
