@@ -141,30 +141,59 @@ end
 -- get coords nearby which fit on map
 function Creature:getNearbyCoords()
   local x1, y1, x2, y2 = world_size()
-  self.nearx,self.neary = get_pos(self.id)
-  if self.direction == "+" then
-    self.newx = self.nearx + near_search_distance
-    self.newy = self.neary + near_search_distance
-  elseif self.direction == "-" then
-    self.newx = self.nearx - near_search_distance
-    self.newy = self.neary - near_search_distance
-  else
-    self.direction = "+"
-    self.newx = self.nearx + near_search_distance
-    self.newy = self.neary + near_search_distance
+  self.nearx, self.neary = get_pos(self.id)
+  self.nearx1 = self.nearx - near_search_distance
+  self.nearx2 = self.nearx + near_search_distance
+  self.neary1 = self.neary - near_search_distance
+  self.neary2 = self.neary + near_search_distance
+  if self.nearx1 < x1 then
+	self.nearx1 = x1
   end
-  if self.newx >= x1 or self.newx >= x2 or self.newy <= y1 or self.newy >= y2 then
-    if self.direction == "+" then
-      self.direction = "-"
-    else
-      self.direction = "+"
-    end
+  if self.nearx2 > x2 then
+	self.nearx2 = x2
   end
-  if not self:set_path(self.newx, self.newy) then
-    self.newx, self.newy = self:getRandomCoords()
+  if self.neary1 < y1 then
+	self.neary1 = y1
+  end
+  if self.neary2 > y2 then
+	self.neary2 = y2
+  end
+--   print("DEBUG: x1,y1,x2,y2 " .. x1,y1,x2,y2 .. "near " .. self.nearx1,self.neary1,self.nearx2,self.neary2)
+  self.new_x = math.random(self.nearx1,self.nearx2)
+  self.new_y = math.random(self.neary1,self.neary2)
+  self.near_count = 0
+--   print("DEBUG: set_path(self.new_x, self.new_y): " .. self.new_x .. ":" .. self.new_y)
+  while not self:set_path(self.new_x, self.new_y) do
+	self.near_count = self.near_count + 1
+    self.new_x = math.random(x1,x2)
+    self.new_y = math.random(y1,y2)
+	if self.near_count > 1000 then
+	  self:getRandomCoords()
+	end
+  end
+--   if self.direction == "+" then
+--     self.newx = self.nearx + near_search_distance
+--     self.newy = self.neary + near_search_distance
+--   elseif self.direction == "-" then
+--     self.newx = self.nearx - near_search_distance
+--     self.newy = self.neary - near_search_distance
+--   else
+--     self.direction = "+"
+--     self.newx = self.nearx + near_search_distance
+--     self.newy = self.neary + near_search_distance
+--   end
+--  if self.newx >= x1 or self.newx >= x2 or self.newy <= y1 or self.newy >= y2 then
+--     if self.direction == "+" then
+--       self.direction = "-"
+--     else
+--       self.direction = "+"
+--     end
+--   end
+  if not self:set_path(self.new_x, self.new_y) then
+    self.new_x, self.new_y = self:getRandomCoords()
   end
   self.was_food = 0
-  return self.newx, self.newy
+  return self.new_x, self.new_y
 end
 
 function getKothCoords ()
@@ -180,6 +209,7 @@ function Creature:search_food()
   if get_state(self.id) ~= CREATURE_WALK then
     if self.was_food > 0 then
       self.walkx, self.walky = self:getNearbyCoords()
+-- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
     else
       self.walkx, self.walky = self:getRandomCoords()
     end
@@ -260,6 +290,7 @@ function Creature:become_koth()
 	    self.mex,self.mey = get_pos(self.id)
 	    self:wait_for_next_round()
 	  end
+	  set_message(self.id, "KING!")
 	end
   else
 	print ("Called become_koth but get_king not set or king already exists")
@@ -345,7 +376,7 @@ function Creature:main_worker()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
   elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
-    print ("main before attack")
+--    print ("main before attack")
 	self:attack(self.enemyid)
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -411,7 +442,7 @@ function Creature:main_mum()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
   elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
-    print ("main before attack")
+--    print ("main before attack")
 	self:attack(self.enemyid)
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -480,6 +511,7 @@ function Creature:onRestart()
 --  print("Food_koord_val = " .. food_koord_val)
 --  food_koordx = false
 --  food_koordy = false
+  koth_walkable = reset_koth_walkable
   food_koord_val = 0
 -- from previos set info function
   local chkd=0
