@@ -3,13 +3,7 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- change function for nearby food search, dont set hard new coordinates, use random but not with world coordinates, jsut with around coordinates....
--- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
--- while for attack, only stop if health is too low
--- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
--- attack king if present
--- if we are king with other creature and no enemy nearby, birth
-
+-- Implement fly
 --------------------------------------------------------------------------
 -- Done
 --------------------------------------------------------------------------
@@ -17,6 +11,12 @@ debug = true
 -- if food here, search around
 -- if food here, remember Position
 -- create mind distance for known food walk
+-- change function for nearby food search, dont set hard new coordinates, use random but not with world coordinates, jsut with around coordinates....
+-- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
+-- while for attack, only stop if health is too low
+-- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
+-- attack king if present
+-- if we are king with other creature and no enemy nearby, birth
 -- 
 --------------------------------------------------------------------------
 -- Variables
@@ -26,15 +26,15 @@ debug = true
 min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
-near_search_distance = 700
+near_search_distance = 300
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
 --begin heal below that value
-heal_health = 25
+heal_health = 75
 end_heal_health = 100
 -- be koth only when health is over that
 koth_walk_health = 70
-koth_leave_health = 15
+koth_leave_health = 5
 walking_koth = false
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
@@ -297,8 +297,8 @@ function Creature:become_koth()
   end
 end
 -- attack enemy
-function Creature:attack(enemy)
-	set_target( self.id, enemy )
+function Creature:attack(enemyid)
+	set_target( self.id, enemyid )
 	set_state( self.id, CREATURE_ATTACK )
 	set_message(self.id, "KILL")
 end
@@ -511,6 +511,9 @@ function Creature:onRestart()
 --  print("Food_koord_val = " .. food_koord_val)
 --  food_koordx = false
 --  food_koordy = false
+  if koth_walkable then
+	print("koth_walkable")
+  end
   koth_walkable = reset_koth_walkable
   food_koord_val = 0
 -- from previos set info function
