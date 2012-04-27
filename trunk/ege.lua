@@ -68,14 +68,16 @@ typ1_become_king = true
 typ2_become_king = true
 
 -- convert options
+-- changed decision, it makes more sence if decide convertion on by whome koth is walkable
 get_typ1 = true
-get_typ2 = false
+get_typ2 = true
 
 -- convert to type only if min typ_min creatures present
 -- thats nonsense: typ1_min = 1
 typ2_min = 2
-typ2_min_typ1 = 2
+typ2_min_typ1 = 0
 max_flys = 1
+koth_walkable_fly = true
 
 -- if fleeing, we need to flee more than enemy can reach
 flee_min_range = 1000
@@ -98,9 +100,11 @@ koth_walkable = true
 -- reset some variables to default values if r is pressed or every below msecs
 reset_wait = 30000
 future = reset_wait
+reset_wait2 = 100000
+future2 = reset_wait2
 --reset_king = false
 reset_koth_walkable = true
-
+reset_koth_walkable_fly = true
 --
 --------------------------------------------------------------------------
 -- Knowledge
@@ -214,7 +218,7 @@ function Creature:heal()
 end
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys <= my_mums and my_flys < max_flys then
+  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not koth_walkable then
 	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums)
 	set_convert( self.id, fly )
 --	my_flys = my_flys + 1
@@ -455,7 +459,14 @@ function Creature:onAttacked(attacker)
 	self.flee(attacker)
   end
 end
+
+-- ege second reset for some values like koth_walkable
+function reset2()
+  future2 = now + reset_wait2
+  koth_walkable = reset_koth_walkable
+  koth_walkable_fly = reset_koth_walkable_fly
   
+end  
 
 -- Called by typing 'r' in the console, after creation (after
 -- onSpawned) or by calling self:restart(). No long-running
@@ -463,11 +474,10 @@ end
 function Creature:onRestart()
   --reset some variables all reset_wait msecs
   future = now + reset_wait
-  koth_walkable = reset_koth_walkable
-  if walking_koth then
-    print("walking_koth = " .. walking_koth)
-    end
-  print("Food_koord_val = " .. food_koord_val)
+--  if walking_koth then
+--    print("walking_koth = " .. walking_koth)
+--    end
+--  print("Food_koord_val = " .. food_koord_val)
 --  food_koordx = false
 --  food_koordy = false
   food_koord_val = 0
@@ -572,13 +582,15 @@ function Creature:main()
   if now >= future then
 	Creature:onRestart()
   end
+  if now >= future2 then
+    reset2()
+  end
   self.type = get_type(self.id)
   if self.type == worker then
 	self:main_worker()
   elseif self.type == mum then
 	self:main_mum()
   elseif self.type == fly then
-    print("calling main_fly cause self.type = " .. self.type)
 	self:main_fly()
   else
 	print ("FATAL: unknown type " .. type)
