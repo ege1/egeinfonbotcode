@@ -332,6 +332,8 @@ function Creature:attack(enemyid)
 		self:wait_for_next_round()
 	  end
 	  set_message(self.id, ":):):)")
+	  self.on_attack = false
+	  return
 	else
 		set_target( self.id, self.enemyid )
 		set_state( self.id, CREATURE_ATTACK )
@@ -578,8 +580,12 @@ function Creature:onAttacked(attacker)
 	self.on_attack = true
 	self:attack(attacker)
   elseif my_type == fly then
+	set_message("fleeee")
+	self.flee = true
 	self:flee(attacker)
   else
+	set_message("fleeee")
+	self.flee = true
 	self:flee(attacker)
   end
 end
