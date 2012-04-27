@@ -28,7 +28,7 @@ min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 near_search_distance = 300
-default_nearby_count = 5
+default_nearby_count = 7
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
 --begin heal below that value
@@ -257,11 +257,18 @@ end
 -- convert, but decide convert to what
 function Creature:convert()
   if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not koth_walkable then
-	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums)
+	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums .. " and koth seems not walkable")
+	if koth_walkable then
+	  print("koth walkable")
+	else
+	  print("koth not walkable")
+	end
+	self.become = "c:fly"
 	set_convert( self.id, fly )
 --	my_flys = my_flys + 1
   elseif get_typ1 then
 	print ("creature " .. self.id .. " converting to mum")
+	self.become = "c:mum"
 	set_convert( self.id, mum )
 --	my_mums = my_mums + 1
   else
@@ -269,7 +276,7 @@ function Creature:convert()
 	return
   end
   set_state( self.id, CREATURE_CONVERT )
-  set_message(self.id, "converting")
+  set_message(self.id, self.become)
   while get_state( self.id ) == CREATURE_CONVERT do
     self:wait_for_next_round()
   end
@@ -312,18 +319,25 @@ function Creature:attack(enemyid)
 	else
 	  self.attack_range = typ1_attack_range
 	end
-	while self.enemydist < self.attack_range do
-	  if not self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id) then
-		return
+	if not self.on_attack then
+	  while self.enemydist < self.attack_range do
+  -- 	  if not self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id) then
+  -- 		return
+  -- 	  end
+		self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
+		set_target( self.id, self.enemyid )
+	  -- 	print("DEBUG: self.id, enemyid" .. self.id .. ":" .. self.enemyid)
+		set_state( self.id, CREATURE_ATTACK )
+		set_message(self.id, "KILL")
+		self:wait_for_next_round()
 	  end
-	  self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
-	  set_target( self.id, self.enemyid )
-	-- 	print("DEBUG: self.id, enemyid" .. self.id .. ":" .. self.enemyid)
-	  set_state( self.id, CREATURE_ATTACK )
-	  set_message(self.id, "KILL")
-	  self:wait_for_next_round()
+	  set_message(self.id, ":):):)")
+	else
+		set_target( self.id, self.enemyid )
+		set_state( self.id, CREATURE_ATTACK )
+		set_message(self.id, "KILL")
 	end
-	set_message(self.id, ":):):)")
+	self.on_attack = false
 end
 
 -- flee until far enough
@@ -519,7 +533,7 @@ function Creature:main_fly()
   self.now_food = convert_food + 500
   if self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
-  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
+  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
 	self:eat()
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -558,8 +572,10 @@ function Creature:onAttacked(attacker)
   local attacker_type = get_type(attacker)
   local my_type = get_type(self.id)
   if my_type == worker and attacker_type == fly then
+	self.on_attack = true
 	self:attack(attacker)
   elseif my_type == mum then
+	self.on_attack = true
 	self:attack(attacker)
   elseif my_type == fly then
 	self:flee(attacker)
