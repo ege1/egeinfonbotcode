@@ -29,8 +29,9 @@ debug = true
 min_food = 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
-near_search_distance = 350
-default_nearby_count = 7
+min_heal_food_mum = 1200
+near_search_distance = 250
+default_nearby_count = 10
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
 --begin heal below that value
@@ -258,13 +259,14 @@ function Creature:heal()
 end
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not koth_walkable then
+  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not koth_walkable and not getting_fly then
 	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums .. " and koth seems not walkable")
-	if koth_walkable then
+--[[	if koth_walkable then
 	  print("koth walkable")
 	else
 	  print("koth not walkable")
-	end
+	end]]
+	getting_fly = true
 	self.become = "c:fly"
 	set_convert( self.id, fly )
 --	my_flys = my_flys + 1
@@ -282,6 +284,7 @@ function Creature:convert()
   while get_state( self.id ) == CREATURE_CONVERT do
     self:wait_for_next_round()
   end
+  getting_fly = false
   set_message(self.id, "converted")
 end
 
@@ -484,13 +487,11 @@ function Creature:main_mum()
   if self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
 --    print ("main before attack")
 	self:attack(self.enemyid)
-  elseif self.health <= birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health < birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
---  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
-  -- make some decisions
   elseif self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
 	self:birth()
-  elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health < heal_health and self.food > min_heal_food_mum and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
