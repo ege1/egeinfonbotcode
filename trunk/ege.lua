@@ -5,8 +5,8 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
---Feed mum....
--- Remember some food places
+-- Feed mum....
+-- Remember some good food places
 --------------------------------------------------------------------------
 -- Done
 --------------------------------------------------------------------------
@@ -26,11 +26,11 @@ debug = true
 --------------------------------------------------------------------------
 --
 --set food coords if food is bigger min_food
-min_food = 5000 -- one point holds max 9999
+min_food = 3000 -- was 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 min_heal_food_mum = 1200
-near_search_distance = 250
+near_search_distance = 300
 default_nearby_count = 10
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
@@ -46,8 +46,8 @@ convert_health = 85 --difficult, now values none, lets try (was 95).-
 convert_food = 8500 --typ1 8000 typ2 5000
 -- birth
 birth = true -- should we spawn?
-birth_health = 25 -- min 20
-birth_food = 6000  -- min 5000
+birth_health = 45 -- min 20
+birth_food = 5500  -- min 5000
 --types
 worker = 0
 mum = 1
@@ -199,6 +199,7 @@ function Creature:getNearbyCoords()
   end
   self.was_food = 0
 --   print("nearby Coords: " .. self.new_x .. ":" .. self.new_y)
+  set_message(self.id, "s:near")
   return self.new_x, self.new_y
 end
 
@@ -213,8 +214,9 @@ function Creature:search_food()
 --  set_message(self.id, "hungry")
   self.bex, self.bey = get_pos(self.id)
   if get_state(self.id) ~= CREATURE_WALK then
-	if self.nearby_count and self.nearby_count > 0 then
-	  self.nearby_count = self.nearby_count - 1
+    if self.nearby_count and self.nearby_count > 0 then
+      self.nearby_count = self.nearby_count - 1
+--       print("self.nearby_count = " .. self.nearby_count)
       self.walkx, self.walky = self:getNearbyCoords()
 -- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
     elseif self.was_food > 0 then
@@ -225,7 +227,7 @@ function Creature:search_food()
       self.walkx, self.walky = self:getRandomCoords()
     end
   end
-  set_message(self.id, "sfood")
+--   set_message(self.id, "sfood")
   if food_koordx and food_koordy and food_koord_val > 1 and food_reporter then
     if get_distance(self.id, food_reporter) < max_food_distance then
       self.walkx = food_koordx
@@ -388,8 +390,8 @@ function Creature:main_worker()
 	food_reporter = self.id
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
-	food_koordx = false
-	food_koordy = false
+-- 	food_koordx = false
+-- 	food_koordy = false
 	food_reporter = false
   end
   self.state = get_state(self.id)
@@ -439,7 +441,8 @@ function Creature:main_worker()
 	self:become_koth()
 	-- something missing?
   else
-	self:search_food()
+    set_message(self.id, "sfood")
+    self:search_food()
   end
 end
 
@@ -452,6 +455,7 @@ function Creature:main_mum()
   self.food = get_food(self.id)
   self.mex,self.mey = get_pos(self.id)
   self.here_food = get_tile_food(self.id)
+--   print("futter: " .. self.here_food .. " id: " .. self.id)
   if self.here_food >= min_food and self.here_food > food_koord_val then
 	food_koordx = self.mex
 	food_koordy = self.mey
@@ -501,7 +505,8 @@ function Creature:main_mum()
 	self:become_koth()
 	-- something missing?
   else
-	self:search_food()
+    set_message(self.id, "sfood")
+    self:search_food()
   end
 --  print("food: " .. self.food)
 end
@@ -558,7 +563,8 @@ function Creature:main_fly()
 	self:become_koth()
 	-- something missing?
   else
-	self:search_food()
+    set_message(self.id, "sfood")
+    self:search_food()
   end
 end
 
@@ -577,7 +583,7 @@ function Creature:onSpawned(parent)
   my_creatures = my_creatures + 1
   my_workers = my_workers + 1
   self.was_food = 0
-  self.nearby_count = 0
+--   self.nearby_count = 0
 end
 
 
@@ -648,8 +654,9 @@ function Creature:onRestart()
   time = game_time()
   COUNT=chkd
   self.was_food = 0
-  self.nearby_count = 0
-
+  --self.nearby_count = 0
+  -- when resetting set last food koords to food again, should have grown again now
+  food_koord_val = 5000
 end
   
 
