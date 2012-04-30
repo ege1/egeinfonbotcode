@@ -32,7 +32,7 @@ end_heal_health = 100
 kill_health = 30
 -- be koth only when health is over that
 koth_walk_health = 50 --70
-koth_leave_health = 15
+koth_leave_health = 25
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
 convert_food = 8500 --typ1 8000 typ2 5000
@@ -456,13 +456,13 @@ function Creature:main_worker()
 		print("self_food: " .. self.food)
 		self:heal()
 -- 		return
-	  elseif self.health < koth_leave_health then
+	  elseif get_health(self.id) < koth_leave_health then
 		print("leaving KING")
 		king = false
 		walking_koth = false
 		self.am_king = false
 		self:search_food()
-		return
+-- 		return
 	  else
 		king = self.id
 	  end
