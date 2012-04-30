@@ -365,7 +365,7 @@ function Creature:flee(attacker)
     end
     set_path(self.id, self.new_x,self.new_y)
     set_state( self.id, CREATURE_WALK )
-    set_message("fleee")
+    set_message(self.id, "fleee")
     self:wait_for_next_round()
   end
 end
@@ -598,22 +598,23 @@ end
 -- creature. No long-running methods here!
 function Creature:onAttacked(attacker)
   -- print("Help! Creature " .. self.id .. " is attacked by Creature " .. attacker)
-  local attacker_type = get_type(attacker)
+  self.attacker = attacker
+  local attacker_type = get_type(self.attacker)
   local my_type = get_type(self.id)
   if my_type == worker and attacker_type == fly then
 	self.on_attack = true
-	self:attack(attacker)
+	self:attack(self.attacker)
   elseif my_type == mum then
 	self.on_attack = true
-	self:attack(attacker)
+	self:attack(self.attacker)
   elseif my_type == fly then
 	set_message(self.id, "fleeee")
-	self.flee = true
-	self:flee(attacker)
+-- 	self.on_flee = true
+	self:flee(self.attacker)
   else
 	set_message(self.id, "fleeee")
-	self.flee = true
-	self:flee(attacker)
+-- 	self.on_flee = true
+	self:flee(self.attacker)
   end
 end
 
