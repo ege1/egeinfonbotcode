@@ -33,7 +33,7 @@ min_food = 3000 -- was 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 min_heal_food_mum = 1200
-near_search_distance = 300
+near_search_distance = 350
 default_nearby_count = 10
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
@@ -344,7 +344,7 @@ function Creature:attack(enemyid)
 -- 	  print ("Enemy dist: " .. self.enemydist)
 	  set_message(self.id, "Oohh :(")
 	  self.on_attack = false
-	  return
+	  self:search_food()
 	else
 		set_target( self.id, self.enemyid )
 		set_state( self.id, CREATURE_ATTACK )
@@ -353,19 +353,25 @@ function Creature:attack(enemyid)
 	self.on_attack = false
 end
 
+-- should not be needed anymore
+-- -- called when attacked and have to flee
+-- function Creature:flee(attacker)
+--   self.attacker = attacker
+--   self.flee = self.attacker
+--   if get_state(self.id) ~= CREATURE_WALK then
+-- 	self.walkx, self.walky = self:getRandomCoords()
+--   end
+--   set_path(self.id, self.walkx,self.walky)
+--   set_state( self.id, CREATURE_WALK )
+--   set_message(self.id, "fleee")
+-- end
+
 -- flee until far enough
-function Creature:flee(attacker)
--- get_nearest_enemy and his coordinates and flee in the opposit direction
+function Creature:fleeing(attacker)
 --flee_min_range = 1000
   self.attacker = attacker
 --   local x1, y1, x2, y2 = world_size()
-  while get_distance(self.id, self.attacker) < flee_min_range do
---     self.new_x = math.random(x1,x2)
---     self.new_y = math.random(y1,y2)
---     while not self:set_path(self.new_x, self.new_y) do
---       self.new_x = math.random(x1,x2)
---       self.new_y = math.random(y1,y2)
---     end
+  while get_distance(self.id, self.attacker) < flee_min_range and self.flee do
 	if get_state(self.id) ~= CREATURE_WALK then
 	  self.walkx, self.walky = self:getRandomCoords()
 	end
@@ -374,6 +380,7 @@ function Creature:flee(attacker)
     set_message(self.id, "fleee")
     self:wait_for_next_round()
   end
+  self.flee = false
 end
 
 function Creature:birth()
@@ -430,7 +437,9 @@ function Creature:main_worker()
     end
   end
   self.now_food = convert_food + 500
-  if self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  if self.flee then
+	self:fleeing(self.flee)
+  elseif self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
   -- make some decisions
@@ -565,7 +574,9 @@ function Creature:main_fly()
 	end
   end
   self.now_food = convert_food + 500
-  if self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  if self.flee then
+	self:fleeing(self.flee)
+  elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
 	self:eat()
@@ -597,6 +608,7 @@ function Creature:onSpawned(parent)
   my_workers = my_workers + 1
   self.was_food = 0
   koth_walkable = reset_koth_walkable
+  self.flee = false
 --   self.nearby_count = 0
 end
 
@@ -615,13 +627,23 @@ function Creature:onAttacked(attacker)
 	self.on_attack = true
 	self:attack(self.attacker)
   elseif my_type == fly then
-	set_message(self.id, "fleeee")
--- 	self.on_flee = true
-	self:flee(self.attacker)
+	self.attacker = attacker
+	self.flee = self.attacker
+	if get_state(self.id) ~= CREATURE_WALK then
+	  self.walkx, self.walky = self:getRandomCoords()
+	end
+	set_path(self.id, self.walkx,self.walky)
+	set_state( self.id, CREATURE_WALK )
+	set_message(self.id, "fleee")
   else
-	set_message(self.id, "fleeee")
--- 	self.on_flee = true
-	self:flee(self.attacker)
+self.attacker = attacker
+	self.flee = self.attacker
+	if get_state(self.id) ~= CREATURE_WALK then
+	  self.walkx, self.walky = self:getRandomCoords()
+	end
+	set_path(self.id, self.walkx,self.walky)
+	set_state( self.id, CREATURE_WALK )
+	set_message(self.id, "fleee")
   end
 end
 
@@ -670,6 +692,7 @@ function Creature:onRestart()
   --self.nearby_count = 0
   -- when resetting set last food koords to food again, should have grown again now
   food_koord_val = 5000
+  self.flee = false
 end
   
 
