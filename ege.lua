@@ -7,6 +7,7 @@ debug = true
 --------------------------------------------------------------------------
 -- Feed mum....
 -- Remember some good food places
+-- Kill koth if we're not koth
 --------------------------------------------------------------------------
 -- Done
 --------------------------------------------------------------------------
@@ -38,7 +39,7 @@ max_food_distance = 5000
 heal_health = 75
 end_heal_health = 100
 -- be koth only when health is over that
-koth_walk_health = 40 --70
+koth_walk_health = 50 --70
 koth_leave_health = 5
 walking_koth = false
 -- convert only if over the following values
@@ -253,7 +254,7 @@ end
 
 -- heal
 function Creature:heal()
-  while get_health(self.id) < end_heal_health and get_food(self.id) > 1 and not get_state(self.id) ~= CREATURE_ATTACK and not get_state(self.id) ~= CREATURE_CONVERT do
+  while get_health(self.id) < end_heal_health and get_food(self.id) > 0 and not get_state(self.id) ~= CREATURE_ATTACK and not get_state(self.id) ~= CREATURE_CONVERT do
     set_state(self.id, CREATURE_HEAL)
     set_message(self.id, "HEAL")
     self:wait_for_next_round()
@@ -388,6 +389,7 @@ function Creature:main_worker()
 	food_koordy = self.mey
 	food_koord_val = self.here_food
 	food_reporter = self.id
+	print("here_food: " .. food_koord_val)
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 -- 	food_koordx = false
@@ -400,18 +402,19 @@ function Creature:main_worker()
   if king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
-	  if self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 		self:heal()
-		return
+-- 		return
 	  elseif self.health < koth_leave_health then
 		king = false
 		walking_koth = false
 		self:search_food()
-		return
+-- 		return
 	  else
 		king = self.id
 	  end
 	  set_message(self.id, "KING")
+	  self.health = get_health(self.id)
 	  self:wait_for_next_round()
 	end
   end
@@ -461,6 +464,7 @@ function Creature:main_mum()
 	food_koordy = self.mey
 	food_koord_val = self.here_food
 	food_reporter = self.id
+	print("here_food: " .. food_koord_val)
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
@@ -472,17 +476,18 @@ function Creature:main_mum()
   if king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
-	  if self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 		self:heal()
-		return
+-- 		return
 	  elseif self.health < koth_leave_health then
 		king = false
 		walking_koth = false
 		self:search_food()
-		return
+-- 		return
 	  else
 		king = self.id
 	  end
+	  self.health = get_health(self.id)
 	  set_message(self.id, "KING")
 	  self:wait_for_next_round()
 	end
@@ -525,6 +530,7 @@ function Creature:main_fly()
 	food_koordy = self.mey
 	food_koord_val = self.here_food
 	food_reporter = self.id
+	print("here_food: " .. food_koord_val)
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
 	food_koordx = false
@@ -536,17 +542,18 @@ function Creature:main_fly()
   if king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
-	  if self.health < heal_health and self.food > 1 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 		self:heal()
-		return
+-- 		return
 	  elseif self.health < koth_leave_health then
 		king = false
 		walking_koth = false
 		self:search_food()
-		return
+-- 		return
 	  else
 		king = self.id
 	  end
+	  self.health = get_health(self.id)
 	  set_message(self.id, "KING")
 	  self:wait_for_next_round()
 	end
@@ -630,11 +637,10 @@ function Creature:onRestart()
 --  print("Food_koord_val = " .. food_koord_val)
 --  food_koordx = false
 --  food_koordy = false
-  if koth_walkable then
+--[[  if koth_walkable then
 	print("koth_walkable")
-  end
+  end]]
   --koth_walkable = reset_koth_walkable
-  food_koord_val = 0
 -- from previos set info function
   local chkd=0
   for id, creature in pairs(creatures) do
@@ -650,7 +656,6 @@ function Creature:onRestart()
   print ("Wir haben " .. my_mums .. " Mums")
   print ("Wir haben " .. my_flys .. " Flies")
 --  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
-
   time = game_time()
   COUNT=chkd
   self.was_food = 0
