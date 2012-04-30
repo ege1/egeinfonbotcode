@@ -17,7 +17,7 @@ debug = true
 --------------------------------------------------------------------------
 --
 --set food coords if food is bigger min_food
-min_food = 3000 -- was 5000 -- one point holds max 9999
+min_food = 2000 -- was 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 min_heal_food_mum = 1200
@@ -432,7 +432,10 @@ function Creature:main_worker()
   self.state = get_state(self.id)
   self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
   king_id = king_player()
-  if king then
+  self.now_food = convert_food + 500
+  if self.flee then
+	self:fleeing(self.flee)
+  elseif king then
 	while king_id == self.id do
 	  set_message(self.id, "KING")
 	  self.health = get_health(self.id)
@@ -449,18 +452,15 @@ function Creature:main_worker()
 	  else
 		king = self.id
 	  end
-	  print("KING")
 	  self:wait_for_next_round()
 	end
-  end
-  if self.enemyid then
+  elseif self.enemyid then
     if get_type(self.enemyid) ~= 2 then
-	  self.enemyid = false
+	self.enemyid = false
+	self:search_food()
+    else
+	self:attack(self.enemyid)
     end
-  end
-  self.now_food = convert_food + 500
-  if self.flee then
-	self:fleeing(self.flee)
   elseif self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
 --  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
@@ -544,7 +544,8 @@ function Creature:main_mum()
 	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
-  elseif walk_to_koth and koth_walkable and not king and self.health > kill_health then
+  elseif walk_to_koth and koth_walkable and self.health > kill_health and not king then
+	print("walk_to_koth and koth_walkable and self.health > kill_health and not king then walk_koth")
 	self:walk_koth()
 	  -- something missing?
   else
@@ -577,7 +578,10 @@ function Creature:main_fly()
   end
   self.state = get_state(self.id)
   king_id = king_player()
-  if king then
+  self.now_food = convert_food + 500
+  if self.flee then
+	self:fleeing(self.flee)
+  elseif king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -595,10 +599,6 @@ function Creature:main_fly()
 	  set_message(self.id, "KING")
 	  self:wait_for_next_round()
 	end
-  end
-  self.now_food = convert_food + 500
-  if self.flee then
-	self:fleeing(self.flee)
   elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
@@ -795,6 +795,11 @@ function Creature:main()
   my_flys = self.flys
   my_creatures = self.chkd
 --  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
+--   if king then
+--     print("we are king " .. king)
+--[[  if king_id then
+    print("king ist: " .. king_id)
+  end]]
   now = game_time()
   if now >= future then
 	Creature:onRestart()
