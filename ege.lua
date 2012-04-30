@@ -435,12 +435,12 @@ function Creature:main_worker()
   self.now_food = convert_food + 500
   if king then
     if king == self.id then
-      am_king = true
+      self.am_king = true
     end
   end
   if self.flee then
 	self:fleeing(self.flee)
-  elseif am_king then
+  elseif self.am_king then
 	while king_id == self.id do
 -- 	  set_message(self.id, "KING")
 	  self.health = get_health(self.id)
@@ -519,13 +519,13 @@ function Creature:main_mum()
   self.now_food = birth_food + 500
   if king then
     if king == self.id then
-      am_king = true
+      self.am_king = true
     end
   end
   if self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
 --    print ("main before attack")
 	self:attack(self.enemyid)
-  elseif am_king then
+  elseif self.am_king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -592,12 +592,12 @@ function Creature:main_fly()
   self.now_food = convert_food + 500
   if king then
     if king == self.id then
-      am_king = true
+      self.am_king = true
     end
   end
   if self.flee then
 	self:fleeing(self.flee)
-  elseif am_king then
+  elseif self.am_king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
