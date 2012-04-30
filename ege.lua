@@ -341,9 +341,10 @@ function Creature:attack(enemyid)
 		set_message(self.id, "KILL")
 		self:wait_for_next_round()
 	  end
+-- 	  print ("Enemy dist: " .. self.enemydist)
 	  set_message(self.id, "Oohh :(")
 	  self.on_attack = false
--- 	  return
+	  return
 	else
 		set_target( self.id, self.enemyid )
 		set_state( self.id, CREATURE_ATTACK )
@@ -414,7 +415,7 @@ function Creature:main_worker()
 		king = false
 		walking_koth = false
 		self:search_food()
--- 		return
+		return
 	  else
 		king = self.id
 	  end
@@ -595,6 +596,7 @@ function Creature:onSpawned(parent)
   my_creatures = my_creatures + 1
   my_workers = my_workers + 1
   self.was_food = 0
+  koth_walkable = reset_koth_walkable
 --   self.nearby_count = 0
 end
 
@@ -646,7 +648,7 @@ function Creature:onRestart()
 --[[  if koth_walkable then
 	print("koth_walkable")
   end]]
-  --koth_walkable = reset_koth_walkable
+  koth_walkable = reset_koth_walkable
 -- from previos set info function
   local chkd=0
   for id, creature in pairs(creatures) do
