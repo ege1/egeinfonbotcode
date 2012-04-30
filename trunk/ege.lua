@@ -7,23 +7,11 @@ debug = true
 --------------------------------------------------------------------------
 -- Feed mum....
 -- Remember some good food places
--- Kill koth if we're not koth
 -- Flee does not work!!!  -- hopefully fixed
 
---------------------------------------------------------------------------
 -- Done
---------------------------------------------------------------------------
--- set variable if one creature is walking koth, no need for all to run there
--- if food here, search around
--- if food here, remember Position
--- create mind distance for known food walk
--- change function for nearby food search, dont set hard new coordinates, use random but not with world coordinates, jsut with around coordinates....
--- write main_mum (attack, koth_walk if not worker which does this, eat, heal)
--- while for attack, only stop if health is too low
--- start heal for mum erlier, if we have food at half and heal beneth 75, heal with while
--- attack king if present
--- if we are king with other creature and no enemy nearby, birth
--- 
+-- Kill koth 
+
 --------------------------------------------------------------------------
 -- Variables
 --------------------------------------------------------------------------
@@ -40,10 +28,11 @@ max_food_distance = 5000
 --begin heal below that value
 heal_health = 75
 end_heal_health = 100
+-- when mum starts to kill
+kill_health = 30
 -- be koth only when health is over that
 koth_walk_health = 50 --70
 koth_leave_health = 5
-walking_koth = false
 -- convert only if over the following values
 convert_health = 85 --difficult, now values none, lets try (was 95).-
 convert_food = 8500 --typ1 8000 typ2 5000
@@ -103,6 +92,7 @@ here_food = 0
 food_koordx = false
 food_koordy = false
 koth_walkable = true
+walking_koth = false
 
 -- reset values, get resettet every reset_wait msecs
 -- reset some variables to default values if r is pressed or every below msecs
@@ -110,6 +100,8 @@ reset_wait = 30000
 future = reset_wait
 reset_wait2 = 100000
 future2 = reset_wait2
+reset_wait3 = 20000
+future3 = reset_wait3
 --reset_king = false
 reset_koth_walkable = true
 reset_koth_walkable_fly = true
@@ -206,10 +198,11 @@ function Creature:getNearbyCoords()
   return self.new_x, self.new_y
 end
 
-function getKothCoords ()
-  kothx, kothy = get_koth_pos()
-  return kothx, kothy
-end
+-- seems we never used that function
+-- function getKothCoords ()
+--   kothx, kothy = get_koth_pos()
+--   return kothx, kothy
+-- end
 
 
 -- search for food
@@ -315,12 +308,39 @@ function Creature:become_koth()
 	    self.mex,self.mey = get_pos(self.id)
 	    self:wait_for_next_round()
 	  end
+	  king = self.id
 	  set_message(self.id, "KING!")
 	end
   else
 	print ("Called become_koth but get_king not set or king already exists")
   end
 end
+
+
+-- Kill koth if there is someone, just walk there...
+
+function Creature:walk_koth()
+  kothx,kothy = get_koth_pos()
+  self.mex,self.mey = get_pos(self.id)
+  if self.mex == kothx and self.mey == kothy then
+    walk_to_koth = false
+    set_message(self.id, "BKoth")
+    lauf = false
+    --self:search_food()
+  else
+    set_message (self.id, "KKoth")
+    lauf = set_path( self.id, kothx, kothy )
+  end
+  if not lauf then
+    koth_walkable = false
+    self:search_food()
+  else
+    set_path(self.id, kothx,kothy)
+    set_state( self.id, CREATURE_WALK )
+--     set_message (self.id, "KKoth")
+  end
+end
+
 -- attack enemy
 function Creature:attack(enemyid)
 	self.enemyid = enemyid
@@ -414,11 +434,14 @@ function Creature:main_worker()
   king_id = king_player()
   if king then
 	while king_id == self.id do
+	  set_message(self.id, "KING")
+	  self.health = get_health(self.id)
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 		self:heal()
 -- 		return
 	  elseif self.health < koth_leave_health then
+		print("leaving KING")
 		king = false
 		walking_koth = false
 		self:search_food()
@@ -426,8 +449,7 @@ function Creature:main_worker()
 	  else
 		king = self.id
 	  end
-	  set_message(self.id, "KING")
-	  self.health = get_health(self.id)
+	  print("KING")
 	  self:wait_for_next_round()
 	end
   end
@@ -488,7 +510,11 @@ function Creature:main_mum()
   self.state = get_state(self.id)
   self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
   king_id = king_player()
-  if king then
+  self.now_food = birth_food + 500
+  if self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
+--    print ("main before attack")
+	self:attack(self.enemyid)
+  elseif king then
 	while king_id == self.id do
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
@@ -506,11 +532,6 @@ function Creature:main_mum()
 	  set_message(self.id, "KING")
 	  self:wait_for_next_round()
 	end
-  end
-  self.now_food = birth_food + 500
-  if self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and self.state ~= "CREATURE_CONVERT" and typ0_kill == true then
---    print ("main before attack")
-	self:attack(self.enemyid)
   elseif self.health < birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
   elseif self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
@@ -523,7 +544,9 @@ function Creature:main_mum()
 	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
-	-- something missing?
+  elseif walk_to_koth and koth_walkable and not king and self.health > kill_health then
+	self:walk_koth()
+	  -- something missing?
   else
     set_message(self.id, "sfood")
     self:search_food()
@@ -778,6 +801,10 @@ function Creature:main()
   end
   if now >= future2 then
     reset2()
+  end
+  if now >= future3 then
+    future3 = now + reset_wait3
+    walk_to_koth = true
   end
   self.type = get_type(self.id)
   if self.type == worker then
