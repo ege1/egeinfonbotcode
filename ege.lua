@@ -8,6 +8,8 @@ debug = true
 -- Feed mum....
 -- Remember some good food places
 -- Kill koth if we're not koth
+-- Flee does not work!!!  -- hopefully fixed
+
 --------------------------------------------------------------------------
 -- Done
 --------------------------------------------------------------------------
@@ -339,9 +341,9 @@ function Creature:attack(enemyid)
 		set_message(self.id, "KILL")
 		self:wait_for_next_round()
 	  end
-	  set_message(self.id, ":):):)")
+	  set_message(self.id, "Oohh :(")
 	  self.on_attack = false
-	  return
+-- 	  return
 	else
 		set_target( self.id, self.enemyid )
 		set_state( self.id, CREATURE_ATTACK )
@@ -355,15 +357,18 @@ function Creature:flee(attacker)
 -- get_nearest_enemy and his coordinates and flee in the opposit direction
 --flee_min_range = 1000
   self.attacker = attacker
-  local x1, y1, x2, y2 = world_size()
+--   local x1, y1, x2, y2 = world_size()
   while get_distance(self.id, self.attacker) < flee_min_range do
-    self.new_x = math.random(x1,x2)
-    self.new_y = math.random(y1,y2)
-    while not self:set_path(self.new_x, self.new_y) do
-      self.new_x = math.random(x1,x2)
-      self.new_y = math.random(y1,y2)
-    end
-    set_path(self.id, self.new_x,self.new_y)
+--     self.new_x = math.random(x1,x2)
+--     self.new_y = math.random(y1,y2)
+--     while not self:set_path(self.new_x, self.new_y) do
+--       self.new_x = math.random(x1,x2)
+--       self.new_y = math.random(y1,y2)
+--     end
+	if get_state(self.id) ~= CREATURE_WALK then
+	  self.walkx, self.walky = self:getRandomCoords()
+	end
+    set_path(self.id, self.walkx,self.walky)
     set_state( self.id, CREATURE_WALK )
     set_message(self.id, "fleee")
     self:wait_for_next_round()
