@@ -437,10 +437,11 @@ function Creature:main_worker()
 	self:fleeing(self.flee)
   elseif king then
 	while king_id == self.id do
-	  set_message(self.id, "KING")
+-- 	  set_message(self.id, "KING")
 	  self.health = get_health(self.id)
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+		print("self_food: " .. self.food)
 		self:heal()
 -- 		return
 	  elseif self.health < koth_leave_health then
@@ -702,7 +703,7 @@ function Creature:onRestart()
 	chkd=chkd+1
   end
   if king then
-	print("king" .. king )
+	print("king: " .. king )
   end
   print ("Wir haben " .. my_creatures .. " Kreaturen")
   print ("Wir haben " .. my_workers .. " Worker")
@@ -768,7 +769,8 @@ end
 function Creature:main()
   -- just for security
   if king then
-	if not player_exists(king) then
+	if not creature_exists(king) then
+	  print("King does not exist any more, unsetting king")
 	  king = false
 	end
   end
