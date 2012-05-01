@@ -392,9 +392,12 @@ function Creature:fleeing(attacker)
     set_path(self.id, self.walkx,self.walky)
     set_state( self.id, CREATURE_WALK )
     set_message(self.id, "fleee")
+-- 	print("flee, line 395")
     self:wait_for_next_round()
   end
   self.flee = false
+-- FIXME hope that helps
+  return
 end
 
 function Creature:birth()
@@ -430,6 +433,7 @@ function Creature:main_worker()
   if king then
     if king == self.id then
       self.am_king = true
+	  set_message(self.id, "KING")
     end
   end
   if self.flee then
@@ -438,29 +442,6 @@ function Creature:main_worker()
 	end
 -- 	print("line454")
 	self:fleeing(self.flee)
-  elseif self.am_king then
--- 	print("line 457")
-	while king_id == self.id do
--- 	  set_message(self.id, "KING")
-	  self.food = get_food(self.id)
-	  self.health = get_health(self.id)
-	  -- even if king, check health and heal if needed
-	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
-		self:heal()
--- 		return
-	  elseif get_health(self.id) < koth_leave_health then
-		print("leaving KING")
-		king = false
-		walking_koth = false
-		self.am_king = false
-		set_message(self.id, "sfood")
-		self:search_food()
--- 		return
-	  else
-		king = self.id
-	  end
-	  self:wait_for_next_round()
-	end
   elseif self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 -- 	print("line 486")
 	self:heal()
@@ -480,6 +461,33 @@ function Creature:main_worker()
 	self.enemy_type = get_type(self.enemyid)
 -- 	print("Enemy_type = " .. self.enemy_type)
 	self:attack(self.enemyid)
+  elseif self.am_king then
+-- 	print("line 457")
+	while king_id == self.id do
+-- 	  set_message(self.id, "KING")
+	  self.food = get_food(self.id)
+	  self.health = get_health(self.id)
+	  -- even if king, check health and heal if needed
+	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+		print("creature " .. self.id .. " called heal health: " .. self.health)
+		-- 		king = false
+-- 		walking_koth = false
+		self.am_king = false
+		self:heal()
+-- 		return
+	  elseif get_health(self.id) < koth_leave_health then
+-- 		print("leaving KING")
+		king = false
+		walking_koth = false
+		self.am_king = false
+		set_message(self.id, "sfood")
+		self:search_food()
+-- 		return
+	  else
+		king = self.id
+	  end
+	  self:wait_for_next_round()
+	end
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 -- 	print("line 505")
 	self:become_koth()
@@ -521,17 +529,29 @@ function Creature:main_mum()
   if king then
     if king == self.id then
       self.am_king = true
+	  set_message(self.id, "KING")
     end
   end
   if self.enemyid and self.enemydist and self.enemydist < typ1_attack_range and self.state ~= "CREATURE_CONVERT" and typ1_kill == true then
 --    print ("main before attack")
 	self:attack(self.enemyid)
+  elseif self.health < birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
+	self:heal()
+  elseif self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
+	self:birth()
+  elseif self.health < heal_health and self.food > min_heal_food_mum and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:heal()
+  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
+	self:eat()
   elseif self.am_king then
 	while king_id == self.id do
 	  self.health = get_health(self.id)
 	  self.food = get_food(self.id)
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+-- 		king = false
+-- 		walking_koth = false
+		self.am_king = false
 		self:heal()
 -- 		return
 	  elseif self.health < koth_leave_health then
@@ -546,20 +566,12 @@ function Creature:main_mum()
 	  end
 	  self:wait_for_next_round()
 	end
-  elseif self.health < birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
-	self:heal()
-  elseif self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
-	self:birth()
-  elseif self.health < heal_health and self.food > min_heal_food_mum and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
-	self:heal()
-  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
-	self:eat()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
   elseif walk_to_koth and koth_walkable and self.health > kill_health and not king then
-	print("walk_to_koth and koth_walkable and self.health > kill_health and not king then walk_koth")
+-- 	print("walk_to_koth and koth_walkable and self.health > kill_health and not king then walk_koth")
 	self:walk_koth()
 	  -- something missing?
   else
@@ -596,6 +608,7 @@ function Creature:main_fly()
   if king then
     if king == self.id then
       self.am_king = true
+	  set_message(self.id, "KING")
     end
   end
   if self.flee then
@@ -603,12 +616,19 @@ function Creature:main_fly()
 	  king = false
 	end
 	self:fleeing(self.flee)
+  elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	self:heal()
+  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
+	self:eat()
   elseif self.am_king then
 	while king_id == self.id do
 	  self.health = get_health(self.id)
 	  self.food = get_food(self.id)
 	  -- even if king, check health and heal if needed
-	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+	  if self.health < heal_health and self.food > 0 then
+-- 		king = false
+-- 		walking_koth = false
+		self.am_king = false
 		self:heal()
 -- 		return
 	  elseif self.health < koth_leave_health then
@@ -616,17 +636,13 @@ function Creature:main_fly()
 		walking_koth = false
 		self.am_king = false
 		self:search_food()
--- 		return
+ 		return
 	  else
 		king = self.id
 		set_message(self.id, "KING")
 	  end
 	  self:wait_for_next_round()
 	end
-  elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
-	self:heal()
-  elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
-	self:eat()
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
