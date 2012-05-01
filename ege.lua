@@ -24,12 +24,12 @@ debug = true
 --
 --set food coords if food is bigger min_food
 min_food = 2000 -- was 5000 -- one point holds max 9999
-min_was_food = 80
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 min_heal_food_mum = 1200
 near_search_distance = 350
 default_nearby_count = 10
+min_was_food = 10
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
 --begin heal below that value
@@ -257,7 +257,8 @@ end
 
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_typ2 and my_creatures >= typ2_min and my_flys < max_flys and not koth_walkable and not getting_fly then
+-- first only one fly, 
+  if get_typ2 and my_creatures >= typ2_min and my_flys < 1 and not koth_walkable and not getting_fly then
 	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums .. " and koth seems not walkable")
 --[[	if koth_walkable then
 	  print("koth walkable")
@@ -403,7 +404,7 @@ function Creature:fleeing(attacker)
   -- 	print("flee, line 395")
       self:wait_for_next_round()
     end
-    print("Stopped to flee: " .. self.id)
+--     print("Stopped to flee: " .. self.id)
     self.flee = false
   end
 end
@@ -532,6 +533,9 @@ function Creature:main_worker()
 -- 	return
 	-- something missing?
   else
+    if king == self.id then
+      king = false
+    end
     set_message(self.id, "sfood")
     self:search_food()
   end
