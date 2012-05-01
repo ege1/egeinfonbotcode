@@ -5,10 +5,15 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
--- Feed mum....
+-- Feed mum...., problem is, mum should wait for "slave" therefor 
+--             self:begin_feeding()
+--             while self:is_feeding() do
+--                 self:wait_for_next_round()
+--             end
+
 -- get fly which searches for good food places, but only if we have at least one mum
 -- Remember some good food places
--- Flee does not work!!!  -- hopefully fixed
+-- Flee bevor attack like tpe
 
 -- Done
 -- Kill koth 
@@ -19,6 +24,7 @@ debug = true
 --
 --set food coords if food is bigger min_food
 min_food = 2000 -- was 5000 -- one point holds max 9999
+min_was_food = 80
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 min_heal_food_mum = 1200
@@ -73,7 +79,7 @@ get_typ2 = true
 -- convert to type only if min typ_min creatures present
 -- thats nonsense: typ1_min = 1
 typ2_min = 2
-typ2_min_typ1 = 0
+typ2_min_typ1 = 1
 max_flys = 2
 koth_walkable_fly = true
 
@@ -200,13 +206,14 @@ function Creature:search_food()
   if get_state(self.id) ~= CREATURE_WALK then
     if self.nearby_count and self.nearby_count > 0 then
       self.nearby_count = self.nearby_count - 1
-      if self.was_food > 0 then
+--       print("self.was_food = " .. self.was_food)
+      if self.was_food > min_was_food then
 		self.nearby_count = default_nearby_count
       end
 --       print("self.nearby_count = " .. self.nearby_count)
       self.walkx, self.walky = self:getNearbyCoords()
 -- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
-    elseif self.was_food > 0 then
+    elseif self.was_food > min_was_food then
 	  self.nearby_count = default_nearby_count
       self.walkx, self.walky = self:getNearbyCoords()
 -- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
@@ -250,7 +257,7 @@ end
 
 -- convert, but decide convert to what
 function Creature:convert()
-  if get_typ1 and get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not koth_walkable and not getting_fly then
+  if get_typ2 and my_creatures >= typ2_min and my_flys < max_flys and not koth_walkable and not getting_fly then
 	print ("get fly, cause creatures = " .. my_creatures .. " and my_mums = " .. my_mums .. " and koth seems not walkable")
 --[[	if koth_walkable then
 	  print("koth walkable")
@@ -261,6 +268,11 @@ function Creature:convert()
 	self.become = "c:fly"
 	set_convert( self.id, fly )
 --	my_flys = my_flys + 1
+  elseif get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not getting_fly then
+	print("get fly, cause more than one mum")
+	getting_fly = true
+	self.become = "c:fly"
+	set_convert( self.id, fly )
   elseif get_typ1 then
 	print ("creature " .. self.id .. " converting to mum")
 	self.become = "c:mum"
@@ -375,21 +387,25 @@ end
 -- flee until far enough
 function Creature:fleeing(attacker)
 --flee_min_range = 1000
-  self.attacker = attacker
---   local x1, y1, x2, y2 = world_size()
-  self.walkx, self.walky = self:getRandomCoords()
-  while get_distance(self.id, self.attacker) < flee_min_range and self.flee do
-    if get_state(self.id) ~= CREATURE_WALK then
-      self.walkx, self.walky = self:getRandomCoords()
+  if not creature_exists(attacker) then
+    self.flee = false
+  else
+    self.attacker = attacker
+  --   local x1, y1, x2, y2 = world_size()
+    self.walkx, self.walky = self:getRandomCoords()
+    while get_distance(self.id, self.attacker) < flee_min_range and self.flee do
+      if get_state(self.id) ~= CREATURE_WALK then
+	self.walkx, self.walky = self:getRandomCoords()
+      end
+      set_path(self.id, self.walkx,self.walky)
+      set_state( self.id, CREATURE_WALK )
+      set_message(self.id, "fleee")
+  -- 	print("flee, line 395")
+      self:wait_for_next_round()
     end
-    set_path(self.id, self.walkx,self.walky)
-    set_state( self.id, CREATURE_WALK )
-    set_message(self.id, "fleee")
--- 	print("flee, line 395")
-    self:wait_for_next_round()
+    print("Stopped to flee: " .. self.id)
+    self.flee = false
   end
-  print("Stopped to flee: " .. self.id)
-  self.flee = false
 end
 
 function Creature:birth()
@@ -420,6 +436,15 @@ function Creature:main_worker()
   end
   self.state = get_state(self.id)
   self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
+  -- flee if enemy is typ1 and near flee_min_range
+  if self.enemyid then
+    if get_type(self.enemyid) == 1 and self.enemydist < flee_min_range then
+      self.flee = self.enemyid
+      self:fleeing(self.flee)
+    else
+      self.flee = false
+    end
+  end
   king_id = king_player()
   self.now_food = convert_food + 500
   if king then
@@ -634,6 +659,16 @@ function Creature:main_fly()
 	food_reporter = false
   end
   self.state = get_state(self.id)
+  self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
+  -- flee if enemy is typ1 and near flee_min_range
+  if self.enemyid then
+      if self.enemydist < flee_min_range and get_type(self.enemyid) == 1 or get_type(self.enemyid) == 0 then
+      self.flee = self.enemyid
+      self:fleeing(self.flee)
+    else
+      self.flee = false
+    end
+  end
   king_id = king_player()
   self.now_food = convert_food + 500
   if king then
