@@ -447,11 +447,15 @@ function Creature:main_worker()
     end
   end
   king_id = king_player()
+  kothx,kothy = get_koth_pos()
   self.now_food = convert_food + 500
   if king then
-    if king == self.id then
+    if king == self.id and kothx == self.mex and kothy == self.mey then
       self.am_king = true
 	  set_message(self.id, "KING")
+    elseif king == self.id then
+      king = false
+      self.am_king = false
     end
   end
   if self.flee then
@@ -565,13 +569,17 @@ function Creature:main_mum()
   self.state = get_state(self.id)
   self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
   king_id = king_player()
-  self.now_food = birth_food + 500
+  kothx,kothy = get_koth_pos()
   if king then
-    if king == self.id then
+    if king == self.id and kothx == self.mex and kothy == self.mey then
       self.am_king = true
 	  set_message(self.id, "KING")
+    elseif king == self.id then
+      king = false
+      self.am_king = false
     end
   end
+  self.now_food = birth_food + 500
   if self.enemyid and self.enemydist and self.enemydist < typ1_attack_range and self.state ~= "CREATURE_CONVERT" and typ1_kill == true then
 --    print ("main before attack")
 	self:attack(self.enemyid)
@@ -674,11 +682,15 @@ function Creature:main_fly()
     end
   end
   king_id = king_player()
+  kothx,kothy = get_koth_pos()
   self.now_food = convert_food + 500
   if king then
-    if king == self.id then
+    if king == self.id and kothx == self.mex and kothy == self.mey then
       self.am_king = true
 	  set_message(self.id, "KING")
+    elseif king == self.id then
+      king = false
+      self.am_king = false
     end
   end
   if self.flee then
