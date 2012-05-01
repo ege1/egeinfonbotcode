@@ -21,7 +21,7 @@ min_food = 2000 -- was 5000 -- one point holds max 9999
 -- if we stand on a place with food, we heal/eat all the time, so set min_heal_food
 min_heal_food = 700
 min_heal_food_mum = 1200
-near_search_distance = 300
+near_search_distance = 350
 default_nearby_count = 10
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
@@ -683,14 +683,13 @@ function Creature:onAttacked(attacker)
 	set_state( self.id, CREATURE_WALK )
 	set_message(self.id, "fleee")
   else
-self.attacker = attacker
 	self.flee = self.attacker
 	if get_state(self.id) ~= CREATURE_WALK then
 	  self.walkx, self.walky = self:getRandomCoords()
+	  set_path(self.id, self.walkx,self.walky)
+	  set_state( self.id, CREATURE_WALK )
+	  set_message(self.id, "fleee")
 	end
-	set_path(self.id, self.walkx,self.walky)
-	set_state( self.id, CREATURE_WALK )
-	set_message(self.id, "fleee")
   end
 end
 
