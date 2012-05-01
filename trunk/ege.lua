@@ -6,6 +6,7 @@ debug = true
 -- ToDo
 --------------------------------------------------------------------------
 -- Feed mum....
+-- get fly which searches for good food places, but only if we have at least one mum
 -- Remember some good food places
 -- Flee does not work!!!  -- hopefully fixed
 
@@ -73,7 +74,7 @@ get_typ2 = true
 -- thats nonsense: typ1_min = 1
 typ2_min = 2
 typ2_min_typ1 = 0
-max_flys = 1
+max_flys = 2
 koth_walkable_fly = true
 
 -- if fleeing, we need to flee more than enemy can reach
