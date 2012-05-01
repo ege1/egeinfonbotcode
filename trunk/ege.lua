@@ -336,6 +336,9 @@ end
 -- attack enemy
 function Creature:attack(enemyid)
 	self.enemyid = enemyid
+	if self.id == walking_koth then
+	  walking_koth = false
+	end
 	if get_type(self.id) == 0 then
 	  self.attack_range = typ0_attack_range
 	else
@@ -375,9 +378,9 @@ function Creature:fleeing(attacker)
 --   local x1, y1, x2, y2 = world_size()
   self.walkx, self.walky = self:getRandomCoords()
   while get_distance(self.id, self.attacker) < flee_min_range and self.flee do
-	if get_state(self.id) ~= CREATURE_WALK then
-	  self.walkx, self.walky = self:getRandomCoords()
-	end
+    if get_state(self.id) ~= CREATURE_WALK then
+      self.walkx, self.walky = self:getRandomCoords()
+    end
     set_path(self.id, self.walkx,self.walky)
     set_state( self.id, CREATURE_WALK )
     set_message(self.id, "fleee")
@@ -580,7 +583,7 @@ function Creature:main_mum()
 	  self:wait_for_next_round()
 	end
 	self.am_king = false
-	self.am_king = false
+	king = false
 	if get_health(self.id) < koth_leave_health then
  		print("leaving KING")
 		king = false
