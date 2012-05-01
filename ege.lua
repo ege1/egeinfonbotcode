@@ -483,6 +483,15 @@ function Creature:main_worker()
 	  end
 	  self:wait_for_next_round()
 	end
+	self.am_king = false
+	if get_health(self.id) < koth_leave_health then
+ 		print("leaving KING")
+		king = false
+		walking_koth = false
+		self.am_king = false
+		set_message(self.id, "sfood")
+		self:search_food()
+	end
 -- 	return
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 -- 	print("line 505")
@@ -570,6 +579,16 @@ function Creature:main_mum()
 	  end
 	  self:wait_for_next_round()
 	end
+	self.am_king = false
+	self.am_king = false
+	if get_health(self.id) < koth_leave_health then
+ 		print("leaving KING")
+		king = false
+		walking_koth = false
+		self.am_king = false
+		set_message(self.id, "sfood")
+		self:search_food()
+	end
 -- 	return
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
@@ -654,6 +673,16 @@ function Creature:main_fly()
 	  end
 	  self:wait_for_next_round()
 	end
+	self.am_king = false
+	self.am_king = false
+	if get_health(self.id) < koth_leave_health then
+ 		print("leaving KING")
+		king = false
+		walking_koth = false
+		self.am_king = false
+		set_message(self.id, "sfood")
+		self:search_food()
+	end
 	-- should we geht koth?
   elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
@@ -694,6 +723,7 @@ end
 function Creature:onAttacked(attacker)
   -- print("Help! Creature " .. self.id .. " is attacked by Creature " .. attacker)
   self.attacker = attacker
+  self.am_king = false
   local attacker_type = get_type(self.attacker)
   local my_type = get_type(self.id)
   if my_type == worker and attacker_type == fly then
