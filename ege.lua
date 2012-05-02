@@ -395,6 +395,10 @@ function Creature:fleeing(attacker)
   --   local x1, y1, x2, y2 = world_size()
     self.walkx, self.walky = self:getRandomCoords()
     while get_distance(self.id, self.attacker) < flee_min_range and self.flee do
+      if not creature_exists(attacker) then
+  	  self.flee = false
+	  break
+      else
       if get_state(self.id) ~= CREATURE_WALK then
 	self.walkx, self.walky = self:getRandomCoords()
       end
