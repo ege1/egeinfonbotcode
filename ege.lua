@@ -398,7 +398,7 @@ function Creature:fleeing(attacker)
       if not creature_exists(attacker) then
   	  self.flee = false
 	  break
-      else
+      end
       if get_state(self.id) ~= CREATURE_WALK then
 	self.walkx, self.walky = self:getRandomCoords()
       end
