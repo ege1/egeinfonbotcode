@@ -80,6 +80,7 @@ get_typ2 = true
 -- thats nonsense: typ1_min = 1
 typ2_min = 2
 typ2_min_typ1 = 1
+typ2_min_typ0 = 1
 max_flys = 2
 koth_walkable_fly = true
 
@@ -269,7 +270,7 @@ function Creature:convert()
 	self.become = "c:fly"
 	set_convert( self.id, fly )
 --	my_flys = my_flys + 1
-  elseif get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_flys < max_flys and not getting_fly then
+  elseif get_typ2 and my_creatures >= typ2_min and my_mums >= typ2_min_typ1 and my_workers >= typ2_min_typ0 and my_flys < max_flys and not getting_fly then
 	print("get fly, cause more than one mum")
 	getting_fly = true
 	self.become = "c:fly"
