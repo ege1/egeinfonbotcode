@@ -33,7 +33,7 @@ min_food = 2000 -- was 5000 -- one point holds max 9999
 min_heal_food = 700
 min_heal_food_mum = 1200
 near_search_distance = 350
-default_nearby_count = 10
+default_nearby_count = 7
 min_was_food = 10
 -- max food distance we walk if someone reports food
 max_food_distance = 5000
