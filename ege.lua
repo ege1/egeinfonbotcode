@@ -5,14 +5,19 @@ debug = true
 --------------------------------------------------------------------------
 -- ToDo
 --------------------------------------------------------------------------
+-- if koth is not walkable and we get fly, convert back to worker to kill other flies
+-- if we have mum and worker and we are not koth with worker, send mum to koth to kill the others
+-- If we have to flee, forget at least for the next 10 Secs to walk koth....
+-- if we have a fly or a second one if koth is not walkable, explore and find some food
+-- if walk koth dont forget to kill or eat on the way to koth
+--
 -- Feed mum...., problem is, mum should wait for "slave" therefor 
 --             self:begin_feeding()
 --             while self:is_feeding() do
 --                 self:wait_for_next_round()
 --             end
-
 -- get fly which searches for good food places, but only if we have at least one mum
--- Remember some good food places
+-- Remember some good food places 
 -- Flee bevor attack like tpe
 
 -- Done
@@ -70,12 +75,10 @@ typ1_attack_range = 512
 typ0_become_king = true
 typ1_become_king = true
 typ2_become_king = true
-
 -- convert options
 -- changed decision, it makes more sence if decide convertion on by whome koth is walkable
 get_typ1 = true
 get_typ2 = true
-
 -- convert to type only if min typ_min creatures present
 -- thats nonsense: typ1_min = 1
 typ2_min = 2
@@ -83,10 +86,8 @@ typ2_min_typ1 = 1
 typ2_min_typ0 = 1
 max_flys = 2
 koth_walkable_fly = true
-
 -- if fleeing, we need to flee more than enemy can reach
 flee_min_range = 1000
-
 -- predefined
 -- how many creatures do I have
 my_creatures = 0
@@ -101,7 +102,6 @@ food_koordx = false
 food_koordy = false
 koth_walkable = true
 walking_koth = false
-
 -- reset values, get resettet every reset_wait msecs
 -- reset some variables to default values if r is pressed or every below msecs
 reset_wait = 50000
@@ -137,13 +137,15 @@ reset_koth_walkable_fly = true
 -- get random koords which fit on map
 function Creature:getRandomCoords()
   local x1, y1, x2, y2 = world_size()
-  self.new_x = math.random(x1,x2)
+--[[  self.new_x = math.random(x1,x2)
   self.new_y = math.random(y1,y2)
   while not self:set_path(self.new_x, self.new_y) do
     self.new_x = math.random(x1,x2)
     self.new_y = math.random(y1,y2)
-  end
-  return self.new_x, self.new_y
+  end]]
+  while not self:set_path(math.random(x2 - x1) + x1,math.random(y2 - y1) + y1) do
+  end                            
+--   return self.new_x, self.new_y
 end
 
 -- get coords nearby which fit on map
@@ -167,59 +169,36 @@ function Creature:getNearbyCoords()
 	self.neary2 = y2
   end
 --   print("DEBUG: x1,y1,x2,y2 " .. x1,y1,x2,y2 .. "near " .. self.nearx1,self.neary1,self.nearx2,self.neary2)
-  self.new_x = math.random(self.nearx1,self.nearx2)
-  self.new_y = math.random(self.neary1,self.neary2)
   self.near_count = 0
---   print("DEBUG: set_path(self.new_x, self.new_y): " .. self.new_x .. ":" .. self.new_y)
-  while not self:set_path(self.new_x, self.new_y) do
+  while not self:set_path(math.random(self.nearx2 - self.nearx1) + self.nearx1,math.random(self.neary2 - self.neary1) + self.neary1) do
 	self.near_count = self.near_count + 1
-    self.new_x = math.random(x1,x2)
-    self.new_y = math.random(y1,y2)
 	if self.near_count > 1000 then
-	  self.new_x, self.new_y = self:getRandomCoords()
-	  return self.new_x, self.new_y
+	  self:getRandomCoords()
+	  break
 	end
-  end
-  if not self:set_path(self.new_x, self.new_y) then
-    self.new_x, self.new_y = self:getRandomCoords()
-  end
+  end                            
   self.was_food = 0
---   print("nearby Coords: " .. self.new_x .. ":" .. self.new_y)
   set_message(self.id, "s:near")
-  return self.new_x, self.new_y
 end
-
--- seems we never used that function
--- function getKothCoords ()
---   kothx, kothy = get_koth_pos()
---   return kothx, kothy
--- end
-
 
 -- search for food
 function Creature:search_food()
---  set_message(self.id, "hungry")
   self.bex, self.bey = get_pos(self.id)
---   set_message(self.id, "sfood")
   if not self.was_food then
 	 self.was_food = 0
   end
   if get_state(self.id) ~= CREATURE_WALK then
     if self.nearby_count and self.nearby_count > 0 then
       self.nearby_count = self.nearby_count - 1
---       print("self.was_food = " .. self.was_food)
       if self.was_food > min_was_food then
 		self.nearby_count = default_nearby_count
       end
---       print("self.nearby_count = " .. self.nearby_count)
-      self.walkx, self.walky = self:getNearbyCoords()
--- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
+      self:getNearbyCoords()
     elseif self.was_food > min_was_food then
 	  self.nearby_count = default_nearby_count
-      self.walkx, self.walky = self:getNearbyCoords()
--- 	  print("DEBUG: x: " .. self.walkx .. ":" .. self.walky)
+      self:getNearbyCoords()
     else
-      self.walkx, self.walky = self:getRandomCoords()
+      self:getRandomCoords()
     end
   end
 --   set_message(self.id, "sfood")
@@ -233,11 +212,10 @@ function Creature:search_food()
     end
   end
   if get_state(self.id) ~= CREATURE_WALK then
-    set_path( self.id, self.walkx, self.walky )
+--     set_path( self.id, self.walkx, self.walky )
     set_state( self.id, CREATURE_WALK )
   end
 end
-
 
 -- eat
 function Creature:eat()
@@ -254,7 +232,6 @@ function Creature:heal()
     self:wait_for_next_round()
   end
 end
-
 
 -- convert, but decide convert to what
 function Creature:convert()
@@ -323,9 +300,7 @@ function Creature:become_koth()
   end
 end
 
-
 -- Kill koth if there is someone, just walk there...
-
 function Creature:walk_koth()
   kothx,kothy = get_koth_pos()
   self.mex,self.mey = get_pos(self.id)
@@ -385,25 +360,25 @@ function Creature:attack(enemyid)
 	self.on_attack = false
 end
 
-
 -- flee until far enough
 function Creature:fleeing(attacker)
---flee_min_range = 1000
+  self.forget_koth = game_time() + 1000
   if not creature_exists(attacker) then
     self.flee = false
   else
     self.attacker = attacker
-  --   local x1, y1, x2, y2 = world_size()
-    self.walkx, self.walky = self:getRandomCoords()
+--     self.walkx, self.walky = self:getRandomCoords()
+    self:getRandomCoords()
     while get_distance(self.id, self.attacker) < flee_min_range and self.flee do
       if not creature_exists(attacker) then
   	  self.flee = false
 	  break
       end
       if get_state(self.id) ~= CREATURE_WALK then
-	self.walkx, self.walky = self:getRandomCoords()
+-- 	self.walkx, self.walky = self:getRandomCoords()
+	self:getRandomCoords()
       end
-      set_path(self.id, self.walkx,self.walky)
+--       set_path(self.id, self.walkx,self.walky)
       set_state( self.id, CREATURE_WALK )
       set_message(self.id, "fleee")
   -- 	print("flee, line 395")
@@ -421,6 +396,7 @@ function Creature:birth()
   end
   print("new worker born")
 end
+
 -- main for workers
 function Creature:main_worker()
   -- get some infos of me
@@ -436,8 +412,6 @@ function Creature:main_worker()
 	print("here_food: " .. food_koord_val)
   elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
 	food_koord_val = 0
--- 	food_koordx = false
--- 	food_koordy = false
 	food_reporter = false
   end
   self.state = get_state(self.id)
@@ -467,48 +441,30 @@ function Creature:main_worker()
 	if king == self.id then
 	  king = false
 	end
--- 	print("line454")
 	self:fleeing(self.flee)
--- 	return
   elseif self.health <= convert_health and self.food > self.now_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 -- 	print("line 486")
 	self:heal()
--- 	return
---  print("health " .. health .. " > " .. koth_walk_health .. " and koth_walkable and get_king and not king and state ~= ")
-  -- make some decisions
   elseif self.health > convert_health and self.food > convert_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
--- 	print("line 491")
 	self:convert()
 -- 	return
   elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
--- 	print("line 494")
 	self:heal()
--- 	return
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
--- 	print("line 497")
 	self:eat()
--- 	return
   elseif self.enemyid and self.enemydist and self.enemydist < typ0_attack_range and typ0_kill == true and get_type(self.enemyid) == 2 then
--- 	print("line 477: enemy = " .. self.enemyid)
 	self.enemy_type = get_type(self.enemyid)
--- 	print("Enemy_type = " .. self.enemy_type)
 	self:attack(self.enemyid)
--- 	return
   elseif self.am_king then
--- 	print("line 457")
 	while king_id == self.id do
--- 	  set_message(self.id, "KING")
 	  self.food = get_food(self.id)
 	  self.health = get_health(self.id)
 	  print("am king an health is: " .. self.health)
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 		print("creature " .. self.id .. " called heal health: " .. self.health)
-		-- 		king = false
--- 		walking_koth = false
 		self.am_king = false
 		self:heal()
--- 		return
 	  elseif get_health(self.id) < koth_leave_health then
 		print("leaving KING")
 		king = false
@@ -531,16 +487,10 @@ function Creature:main_worker()
 		set_message(self.id, "sfood")
 		self:search_food()
 	end
--- 	return
-  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
--- 	print("line 505")
+  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and game_time() > self.forget_koth then
 	self:become_koth()
--- 	return
-  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
--- 	print("line 508")
+  elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and game_time() > self.forget_koth then
 	self:become_koth()
--- 	return
-	-- something missing?
   else
     if king == self.id then
       king = false
@@ -559,7 +509,6 @@ function Creature:main_mum()
   self.food = get_food(self.id)
   self.mex,self.mey = get_pos(self.id)
   self.here_food = get_tile_food(self.id)
---   print("futter: " .. self.here_food .. " id: " .. self.id)
   if self.here_food >= min_food and self.here_food > food_koord_val then
 	food_koordx = self.mex
 	food_koordy = self.mey
@@ -586,32 +535,23 @@ function Creature:main_mum()
   end
   self.now_food = birth_food + 500
   if self.enemyid and self.enemydist and self.enemydist < typ1_attack_range and self.state ~= "CREATURE_CONVERT" and typ1_kill == true then
---    print ("main before attack")
 	self:attack(self.enemyid)
--- 	return
   elseif self.health < birth_health and self.food > self.now_food and not self:is_spawning() and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
--- 	return
   elseif self.health > birth_health and self.food > birth_food and self.state ~= "CREATURE_ATTACK" then
 	self:birth()
--- 	return
   elseif self.health < heal_health and self.food > min_heal_food_mum and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
--- 	return
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
--- 	return
   elseif self.am_king then
 	while king_id == self.id do
 	  self.health = get_health(self.id)
 	  self.food = get_food(self.id)
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
--- 		king = false
--- 		walking_koth = false
 		self.am_king = false
 		self:heal()
--- 		return
 	  elseif self.health < koth_leave_health then
 		print("leaving king")
 		king = false
@@ -635,23 +575,16 @@ function Creature:main_mum()
 		set_message(self.id, "sfood")
 		self:search_food()
 	end
--- 	return
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
--- 	return
   elseif self.health > koth_walk_health and koth_walkable and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:become_koth()
--- 	return
   elseif walk_to_koth and koth_walkable and self.health > kill_health and not king then
--- 	print("walk_to_koth and koth_walkable and self.health > kill_health and not king then walk_koth")
 	self:walk_koth()
--- 	return
-	  -- something missing?
   else
     set_message(self.id, "sfood")
     self:search_food()
   end
---  print("food: " .. self.food)
 end
 
 --------------------------------------------------------------------------
@@ -703,21 +636,16 @@ function Creature:main_fly()
 	  king = false
 	end
 	self:fleeing(self.flee)
--- 	return
   elseif self.health < heal_health and self.food > min_heal_food and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
 	self:heal()
--- 	return
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
 	self:eat()
--- 	return
   elseif self.am_king then
 	while king_id == self.id do
 	  self.health = get_health(self.id)
 	  self.food = get_food(self.id)
 	  -- even if king, check health and heal if needed
 	  if self.health < heal_health and self.food > 0 then
--- 		king = false
--- 		walking_koth = false
 		self.am_king = false
 		self:heal()
 	  elseif get_health(self.id) < koth_leave_health then
@@ -744,13 +672,10 @@ function Creature:main_fly()
 		self:search_food()
 	end
 	-- should we geht koth?
-  elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and walking_koth == self.id and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and game_time() > self.forget_koth then
 	self:become_koth()
--- 	return
-  elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" then
+  elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and game_time() > self.forget_koth then
 	self:become_koth()
--- 	return
-	-- something missing?
   else
     set_message(self.id, "sfood")
     self:search_food()
@@ -774,14 +699,13 @@ function Creature:onSpawned(parent)
   self.was_food = 0
   koth_walkable = reset_koth_walkable
   self.flee = false
---   self.nearby_count = 0
+  self.forget_koth = 0
 end
 
 
 -- Called each round for every attacker on this
 -- creature. No long-running methods here!
 function Creature:onAttacked(attacker)
-  -- print("Help! Creature " .. self.id .. " is attacked by Creature " .. attacker)
   self.attacker = attacker
   self.am_king = false
   local attacker_type = get_type(self.attacker)
@@ -796,16 +720,14 @@ function Creature:onAttacked(attacker)
 	self.attacker = attacker
 	self.flee = self.attacker
 	if get_state(self.id) ~= CREATURE_WALK then
-	  self.walkx, self.walky = self:getRandomCoords()
+	  self:getRandomCoords()
 	end
-	set_path(self.id, self.walkx,self.walky)
 	set_state( self.id, CREATURE_WALK )
 	set_message(self.id, "fleee")
   else
 	self.flee = self.attacker
 	if get_state(self.id) ~= CREATURE_WALK then
-	  self.walkx, self.walky = self:getRandomCoords()
-	  set_path(self.id, self.walkx,self.walky)
+	  self:getRandomCoords()
 	  set_state( self.id, CREATURE_WALK )
 	  set_message(self.id, "fleee")
 	end
@@ -826,17 +748,7 @@ end
 function Creature:onRestart()
   --reset some variables all reset_wait msecs
   future = now + reset_wait
---  if walking_koth then
---    print("walking_koth = " .. walking_koth)
---    end
---  print("Food_koord_val = " .. food_koord_val)
---  food_koordx = false
---  food_koordy = false
---[[  if koth_walkable then
-	print("koth_walkable")
-  end]]
   koth_walkable = reset_koth_walkable
--- from previos set info function
   local chkd=0
   for id, creature in pairs(creatures) do
 	local posx,posy=get_pos(id)
@@ -850,11 +762,9 @@ function Creature:onRestart()
   print ("Wir haben " .. my_workers .. " Worker")
   print ("Wir haben " .. my_mums .. " Mums")
   print ("Wir haben " .. my_flys .. " Flies")
---  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
   time = game_time()
   COUNT=chkd
   self.was_food = 0
-  --self.nearby_count = 0
   -- when resetting set last food koords to food again, should have grown again now
   food_koord_val = 5000
   self.flee = false
@@ -915,10 +825,9 @@ function Creature:main()
 	  king = false
 	end
   end
---debug
---  if food_reporter then
---    print("Distanz: " ..get_distance(self.id, food_reporter))
---  end
+  if not self.forget_koth then
+    self.forget_koth = 0
+  end
   self.chkd = 0
   self.workers = 0
   self.mums = 0
@@ -937,12 +846,6 @@ function Creature:main()
   my_mums = self.mums 
   my_flys = self.flys
   my_creatures = self.chkd
---  print("Workers: " .. my_workers .. " Mums " .. my_mums .. " Flys " .. my_flys .. " Creatures: " .. my_creatures)
---   if king then
---     print("we are king " .. king)
---[[  if king_id then
-    print("king ist: " .. king_id)
-  end]]
   now = game_time()
   if now >= future then
 	Creature:onRestart()
