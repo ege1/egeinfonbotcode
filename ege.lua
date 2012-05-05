@@ -289,11 +289,25 @@ function Creature:become_koth()
 	  set_message (self.id, "WalkKoth")
 	  self.mex,self.mey = get_pos(self.id)
 	  while self.mex ~= kothx and self.mey ~= kothy do
+	    self.health = get_health(self.id)
+	    self.food = get_food(self.id)
 	    self.mex,self.mey = get_pos(self.id)
+	    self.here_food = get_tile_food(self.id)
+	    if self.here_food >= min_food and self.here_food > food_koord_val then
+		  food_koordx = self.mex
+		  food_koordy = self.mey
+		  food_koord_val = self.here_food
+		  food_reporter = self.id
+	    elseif self.here_food <= 1 and self.mex == food_koordx and self.mey == food_koordy then
+		  food_koord_val = 0
+		  food_reporter = false
+	    end
 	    self:wait_for_next_round()
 	  end
-	  king = self.id
-	  set_message(self.id, "KING!")
+	  if king_player() == creature_player(self.id) then
+	    king = self.id
+	    set_message(self.id, "KING!")
+	  end
 	end
   else
 	print ("Called become_koth but get_king not set or king already exists")
@@ -425,7 +439,6 @@ function Creature:main_worker()
       self.flee = false
     end
   end
-  king_id = king_player()
   kothx,kothy = get_koth_pos()
   self.now_food = convert_food + 500
   if king then
@@ -456,7 +469,7 @@ function Creature:main_worker()
 	self.enemy_type = get_type(self.enemyid)
 	self:attack(self.enemyid)
   elseif self.am_king then
-	while king_id == self.id do
+	while king_player == creature_player(self.id) do
 	  self.food = get_food(self.id)
 	  self.health = get_health(self.id)
 	  print("am king an health is: " .. self.health)
@@ -522,7 +535,6 @@ function Creature:main_mum()
   end
   self.state = get_state(self.id)
   self.enemyid, self.enemyx, self.enemyy, self.enemynum, self.enemydist = get_nearest_enemy(self.id)
-  king_id = king_player()
   kothx,kothy = get_koth_pos()
   if king then
     if king == self.id and kothx == self.mex and kothy == self.mey then
@@ -545,7 +557,7 @@ function Creature:main_mum()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < worker_max_food then
 	self:eat()
   elseif self.am_king then
-	while king_id == self.id do
+	while king_player() == creature_player(self.id) do
 	  self.health = get_health(self.id)
 	  self.food = get_food(self.id)
 	  -- even if king, check health and heal if needed
@@ -619,7 +631,6 @@ function Creature:main_fly()
       self.flee = false
     end
   end
-  king_id = king_player()
   kothx,kothy = get_koth_pos()
   self.now_food = convert_food + 500
   if king then
@@ -627,6 +638,7 @@ function Creature:main_fly()
       self.am_king = true
 	  set_message(self.id, "KING")
     elseif king == self.id then
+      print("not king cause not on king pos")
       king = false
       self.am_king = false
     end
@@ -641,7 +653,7 @@ function Creature:main_fly()
   elseif self.here_food > 0 and self.state ~= "CREATURE_CONVERT" and self.state ~= "CREATURE_ATTACK" and self.food < fly_max_food then
 	self:eat()
   elseif self.am_king then
-	while king_id == self.id do
+	while king_player() == creature_player(self.id) do
 	  self.health = get_health(self.id)
 	  self.food = get_food(self.id)
 	  -- even if king, check health and heal if needed
@@ -819,12 +831,18 @@ end
 -- Your Creature Logic here :-)
 function Creature:main()
   -- just for security
-  if king then
+--   me = player_number()
+--   print("me: " .. self.me)
+--[[  if king then
+    print("KING " .. king)
 	if not creature_exists(king) then
 	  print("King does not exist any more, unsetting king")
 	  king = false
 	end
-  end
+  end]]
+--[[  if self.nearby_count then
+    print("nearby_count player: " .. self.id .. " ist " .. self.nearby_count)
+  end]]
   if not self.forget_koth then
     self.forget_koth = 0
   end
