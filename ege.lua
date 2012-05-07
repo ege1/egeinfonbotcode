@@ -674,7 +674,6 @@ function Creature:main_fly()
 	  self:wait_for_next_round()
 	end
 	self.am_king = false
-	self.am_king = false
 	if get_health(self.id) < koth_leave_health then
  		print("leaving KING")
 		king = false
