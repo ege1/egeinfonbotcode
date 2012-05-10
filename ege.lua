@@ -376,7 +376,7 @@ end
 
 -- flee until far enough
 function Creature:fleeing(attacker)
-  self.forget_koth = game_time() + 1000
+  self.forget_koth = game_time() + 10000
   if not creature_exists(attacker) then
     self.flee = false
   else
