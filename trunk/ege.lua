@@ -627,7 +627,7 @@ function Creature:main_fly()
   if self.enemyid then
       if self.enemydist < flee_min_range and get_type(self.enemyid) ~= 2 then
       self.flee = self.enemyid
-      print("fleeeeeeee self.enemydist:flee_min_range enemy_type" .. self.enemydist .. ":" .. flee_min_range .. ":" .. get_type(self.enemyid))
+--      print("fleeeeeeee self.enemydist:flee_min_range enemy_type" .. self.enemydist .. ":" .. flee_min_range .. ":" .. get_type(self.enemyid))
       self:fleeing(self.flee)
     else
       self.flee = false
@@ -689,22 +689,9 @@ function Creature:main_fly()
 	print("become_koth")
 	self:become_koth()
   elseif self.health > koth_walk_health and koth_walkable_fly and get_king and not king and not walking_koth and self.state ~= "CREATURE_CONVERT" and game_time() > self.forget_koth then
-	print("become_koth")
+--	print("become_koth")
 	self:become_koth()
   else
-    if get_king then
-      print("get_king true")
-      print("gametime : forget koth" ..  game_time() .. ":" .. self.forget_koth)
-    end
-    if not get_king then
-      print("not get_king")
-    end
-    if koth_walkable_fly then
-      print("walkable_fly")
-    end
-    if walking_koth then
-      print("walking_koth = " .. walking_koth)
-    end
     set_message(self.id, "sfood")
     self:search_food()
   end
